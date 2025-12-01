@@ -1,7 +1,8 @@
-"use client"
+// app/dashboard/master-users/page.tsx
+
+'use client'
 
 import { useState } from "react"
-import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,8 +15,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useNotification } from "@/lib/notification-context"
-import { PencilIcon } from 'lucide-react' // Import icon untuk tombol edit
+import { useNotification } from "@/lib/notification-context" // Asumsi context ini ada
+import { PencilIcon, Trash2, Loader2 } from 'lucide-react'
+import useSWR, { mutate } from 'swr' // Import SWR dan mutate
+import { fetcher } from '@/lib/fetcher' // Import fetcher
+import { DashboardLayout } from "@/components/dashboard-layout"
+
+// --- Interfaces dan Types ---
 
 interface MasterUserData {
   id: string
@@ -25,33 +31,94 @@ interface MasterUserData {
   status: string
 }
 
+// Data yang dibutuhkan saat membuat user baru
+interface NewUserPayload extends Omit<MasterUserData, 'id' | 'status'> {
+  password: string; // Password wajib saat CREATE
+}
+
 export default function MasterUsersPage() {
-  const [users, setUsers] = useState<MasterUserData[]>([
-    {
-      id: "u001",
-      name: "Alice Johnson",
-      email: "alice@company.com",
-      role: "Administrator",
-      status: "Active",
-    },
-    {
-      id: "u002",
-      name: "Bob Smith",
-      email: "bob@company.com",
-      role: "Petani",
-      status: "Pending",
-    },
-  ])
+  const { addNotification } = useNotification()
+
+  // 1. READ: Fetch Data dari API menggunakan SWR
+  const { data: users, error, isLoading } = useSWR<MasterUserData[]>('/api/users', fetcher)
+
+  // State untuk Dialog dan Loading
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // State untuk Add User
-  const [newUser, setNewUser] = useState({ name: "", email: "", role: "", status: "Active" })
-  const [createDialogOpen, setCreateDialogOpen] = useState(false) // Dialog untuk Create
+  const [newUser, setNewUser] = useState<NewUserPayload & { status: string }>({
+    name: "",
+    email: "",
+    role: "",
+    status: "Active", // Default status di frontend saat create
+    password: ""
+  })
 
   // State untuk Edit User
   const [editingUser, setEditingUser] = useState<MasterUserData | null>(null)
-  const [editDialogOpen, setEditDialogOpen] = useState(false) // Dialog untuk Edit
 
-  const { addNotification } = useNotification()
+  // --- Fungsi CRUD ---
+
+  // CREATE (POST)
+  const addUser = async () => {
+    if (!newUser.name || !newUser.email || !newUser.role || !newUser.password) {
+      addNotification("Validasi Error", "Nama, Email, Peran, dan Password wajib diisi.", "error")
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...newUser,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Gagal membuat pengguna')
+      }
+
+      // Reset state & tutup dialog
+      setNewUser({ name: "", email: "", role: "", status: "Active", password: "" })
+      setCreateDialogOpen(false)
+
+      // Update UI: Revalidate SWR cache
+      mutate('/api/users')
+      addNotification("User Created", `Pengguna ${newUser.name} berhasil ditambahkan.`, "success")
+
+    } catch (err: any) {
+      addNotification("Error", err.message, "error")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // DELETE
+  const deleteUser = async (id: string, name: string) => {
+    if (!confirm(`Apakah Anda yakin ingin menghapus pengguna ${name}? Tindakan ini tidak dapat dibatalkan.`)) return
+
+    try {
+      const response = await fetch(`/api/users/${id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Gagal menghapus pengguna')
+      }
+
+      // Update UI: Revalidate SWR cache
+      mutate('/api/users')
+      addNotification("User Deleted", `Pengguna ${name} berhasil dihapus.`, "info")
+
+    } catch (err: any) {
+      addNotification("Error", err.message, "error")
+    }
+  }
 
   // Fungsi untuk membuka dialog edit
   const handleEdit = (user: MasterUserData) => {
@@ -59,38 +126,53 @@ export default function MasterUsersPage() {
     setEditDialogOpen(true)
   }
 
-  // Fungsi untuk menyimpan perubahan User
-  const saveEditedUser = () => {
+  // UPDATE (PATCH)
+  const saveEditedUser = async () => {
     if (!editingUser) return
 
-    setUsers(
-      users.map((u) => (u.id === editingUser.id ? editingUser : u))
-    )
-    setEditDialogOpen(false)
-    setEditingUser(null)
-    addNotification("User Updated", `${editingUser.name} details updated successfully`, "success")
-  }
+    setIsSubmitting(true)
+    try {
+      const { id, name, email, role, status } = editingUser;
 
-  const addUser = () => {
-    if (newUser.name && newUser.email && newUser.role) {
-      const user = { id: Date.now().toString(), ...newUser }
-      setUsers([...users, user])
-      // Reset state, status tetap di 'Active' sebagai default saat membuat user baru
-      setNewUser({ name: "", email: "", role: "", status: "Active" })
-      setCreateDialogOpen(false)
-      addNotification(
-        "User Created",
-        `${user.name} (${user.role}) added successfully`,
-        "success",
-      )
+      const response = await fetch(`/api/users/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, role, status }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Gagal mengupdate pengguna')
+      }
+
+      // Tutup dialog
+      setEditDialogOpen(false)
+      setEditingUser(null)
+
+      // Update UI: Revalidate SWR cache
+      mutate('/api/users')
+      addNotification("User Updated", `Detail ${name} berhasil diperbarui.`, "success")
+
+    } catch (err: any) {
+      addNotification("Error", err.message, "error")
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
-  const deleteUser = (id: string) => {
-    const user = users.find((u) => u.id === id)
-    setUsers(users.filter((c) => c.id !== id))
-    addNotification("User Deleted", `${user?.name} deleted successfully`, "info")
-  }
+  // --- Render Status ---
+
+  if (error) return <DashboardLayout>
+    <div className="text-red-500">Gagal memuat pengguna: {error.message}</div>
+  </DashboardLayout>
+
+  if (isLoading) return <DashboardLayout>
+    <div className="flex items-center justify-center h-40">
+      <Loader2 className="mr-2 h-6 w-6 animate-spin" /> Loading Users...
+    </div>
+  </DashboardLayout>
+
+  const userList = users || [];
 
   return (
     <DashboardLayout>
@@ -116,17 +198,27 @@ export default function MasterUsersPage() {
                   placeholder="Full Name"
                   value={newUser.name}
                   onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                  disabled={isSubmitting}
                 />
                 <Input
                   placeholder="Email Address"
                   type="email"
                   value={newUser.email}
                   onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  disabled={isSubmitting}
+                />
+                <Input
+                  placeholder="Password"
+                  type="password"
+                  value={newUser.password}
+                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                  disabled={isSubmitting}
                 />
 
                 <Select
                   value={newUser.role}
                   onValueChange={(value) => setNewUser({ ...newUser, role: value })}
+                  disabled={isSubmitting}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih Peran Pengguna (Role)" />
@@ -137,10 +229,12 @@ export default function MasterUsersPage() {
                   </SelectContent>
                 </Select>
 
-                {/* 🛑 Status Input DIHILANGKAN untuk Create User */}
-
-                <Button onClick={addUser} className="w-full bg-primary hover:bg-primary/90">
-                  Add User
+                <Button
+                  onClick={addUser}
+                  className="w-full bg-primary hover:bg-primary/90"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Add User'}
                 </Button>
               </div>
             </DialogContent>
@@ -150,7 +244,7 @@ export default function MasterUsersPage() {
         {/* Users Table */}
         <Card className="bg-card/50 backdrop-blur border-border">
           <CardHeader>
-            <CardTitle>Master User List</CardTitle>
+            <CardTitle>Master User List ({userList.length} total)</CardTitle>
             <CardDescription>View, edit, and manage all users with elevated permissions.</CardDescription>
           </CardHeader>
           <CardContent>
@@ -166,29 +260,38 @@ export default function MasterUsersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((user) => (
+                  {userList.map((user) => (
                     <TableRow key={user.id} className="border-border">
                       <TableCell className="text-foreground font-medium">{user.name}</TableCell>
                       <TableCell className="text-foreground">{user.email}</TableCell>
                       <TableCell className="text-muted-foreground">{user.role}</TableCell>
-                      <TableCell className={`font-semibold ${user.status === 'Active' ? 'text-green-500' : 'text-yellow-500'}`}>{user.status}</TableCell>
+                      <TableCell
+                        className={`font-semibold ${user.status === 'Active' ? 'text-green-500' :
+                          user.status === 'Pending' ? 'text-yellow-500' : 'text-red-500'
+                          }`}
+                      >
+                        {user.status}
+                      </TableCell>
                       <TableCell className="flex space-x-2">
-                        {/* 2. Tombol Edit */}
+                        {/* Tombol Edit */}
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => handleEdit(user)}
                           className="text-primary hover:bg-primary/10"
+                          disabled={isSubmitting}
                         >
                           <PencilIcon className="h-4 w-4" />
                         </Button>
+                        {/* Tombol Delete */}
                         <Button
                           variant="ghost"
-                          size="sm"
-                          onClick={() => deleteUser(user.id)}
-                          className="text-destructive hover:text-destructive/90"
+                          size="icon"
+                          onClick={() => deleteUser(user.id, user.name)}
+                          className="text-destructive hover:bg-destructive/10"
+                          disabled={isSubmitting}
                         >
-                          Delete
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -200,7 +303,7 @@ export default function MasterUsersPage() {
         </Card>
       </div>
 
-      {/* 3. Dialog for Editing User */}
+      {/* 2. Dialog for Editing User */}
       {editingUser && (
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent>
@@ -208,24 +311,24 @@ export default function MasterUsersPage() {
               <DialogTitle>Edit User: {editingUser.name}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              {/* Input Name - Read-only atau bisa diubah, di sini dibuat bisa diubah */}
               <Input
                 placeholder="Full Name"
                 value={editingUser.name}
                 onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
+                disabled={isSubmitting}
               />
-              {/* Input Email */}
               <Input
                 placeholder="Email Address"
                 type="email"
                 value={editingUser.email}
                 onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                disabled={isSubmitting}
               />
 
-              {/* Select Role */}
               <Select
                 value={editingUser.role}
                 onValueChange={(value) => setEditingUser({ ...editingUser, role: value })}
+                disabled={isSubmitting}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih Peran Pengguna (Role)" />
@@ -236,10 +339,11 @@ export default function MasterUsersPage() {
                 </SelectContent>
               </Select>
 
-              {/* 🟢 Status Input DITAMPILKAN untuk Edit User */}
+              {/* Status Input untuk Edit User */}
               <Select
                 value={editingUser.status}
                 onValueChange={(value) => setEditingUser({ ...editingUser, status: value })}
+                disabled={isSubmitting}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih Status Pengguna" />
@@ -251,8 +355,12 @@ export default function MasterUsersPage() {
                 </SelectContent>
               </Select>
 
-              <Button onClick={saveEditedUser} className="w-full bg-primary hover:bg-primary/90">
-                Save Changes
+              <Button
+                onClick={saveEditedUser}
+                className="w-full bg-primary hover:bg-primary/90"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Save Changes'}
               </Button>
             </div>
           </DialogContent>

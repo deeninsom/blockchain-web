@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # Layanan Database PostgreSQL
+  db:
+    image: postgres:15-alpine # Menggunakan image PostgreSQL versi 15 yang ringan
+    container_name: next_postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: nextjs_db
+    ports:
+      - "5432:5432" # Membuka port 5432 di host Anda
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Volume untuk menyimpan data secara persisten
+
+  # Layanan Aplikasi Next.js
+  app:
+    build:
+      context: . # Mencari Dockerfile di direktori saat ini
+      dockerfile: Dockerfile
+    container_name: nextjs_app
+    restart: on-failure
+    ports:
+      - "3000:3000" # Membuka port 3000 (default Next.js)
+    environment:
+      # Variabel environment yang menghubungkan Next.js ke container DB
+      # Catatan: 'db' adalah nama host internal Docker Compose
+      DATABASE_URL: postgresql://user:password@db:5432/nextjs_db
+      NODE_ENV: development
+    # Memastikan container 'db' berjalan sebelum 'app' dimulai
+    depends_on:
+      - db
+    # Mounting untuk Live Reloading (Hanya untuk Development)
+    volumes:
+      - .:/app
+      - /app/node_modules # Menghindari overwrite node_modules dari host
+
+# Volume untuk persistensi data database
+volumes:
+  postgres_data:

@@ -7,9 +7,10 @@ import { Sidebar } from "./sidebar"
 import { Header } from "./header"
 import { NotificationCenter } from "./notification-center"
 
-export function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [showNotifications, setShowNotifications] = useState(false)
+
 
   return (
     <div className="min-h-screen bg-background flex">

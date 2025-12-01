@@ -66,3 +66,5 @@ pnpm-lock.yaml
 # Prisma (if used)
 prisma/*-migration.lock
 prisma/migrations/
+
+/lib/generated/prisma
