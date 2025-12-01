@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { BarChart3, PenTool, FileText, Eye, ChevronDown } from "lucide-react"
+import { BarChart3, PenTool, FileText, Eye, ChevronDown, User2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface SidebarProps {
@@ -36,6 +36,11 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
         { label: "Consumer Scan", href: "/dashboard/consumer-scan" },
         { label: "Upload Certificate", href: "/dashboard/upload-certificate" },
       ],
+    },
+    {
+      label: "Users",
+      icon: User2,
+      href: "/dashboard/users",
     },
     {
       label: "Documents",
