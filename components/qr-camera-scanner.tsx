@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 interface QRCameraScannerProps {
   isOpen: boolean
@@ -15,6 +16,8 @@ export function QRCameraScanner({ isOpen, onClose, onScan }: QRCameraScannerProp
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [errorMessage, setErrorMessage] = useState("")
   const [isScanning, setIsScanning] = useState(false)
+  const [manualQRCode, setManualQRCode] = useState("")
+  const [cameraAvailable, setCameraAvailable] = useState(true)
 
   useEffect(() => {
     if (!isOpen) return
@@ -22,7 +25,8 @@ export function QRCameraScanner({ isOpen, onClose, onScan }: QRCameraScannerProp
     const startCamera = async () => {
       try {
         setErrorMessage("")
-        const stream = await navigator.mediaDevices.getUserMedia({
+        setCameraAvailable(true)
+        const stream = await navigator.mediaDevices?.getUserMedia({
           video: { facingMode: "environment" },
         })
 
@@ -31,8 +35,10 @@ export function QRCameraScanner({ isOpen, onClose, onScan }: QRCameraScannerProp
           setIsScanning(true)
         }
       } catch (err) {
-        setErrorMessage("Unable to access camera. Please check permissions.")
         console.error("Camera access error:", err)
+        setCameraAvailable(false)
+        setErrorMessage("Camera not available. Please enter QR code manually below.")
+        setIsScanning(false)
       }
     }
 
@@ -46,32 +52,12 @@ export function QRCameraScanner({ isOpen, onClose, onScan }: QRCameraScannerProp
     }
   }, [isOpen])
 
-  useEffect(() => {
-    if (!isScanning || !videoRef.current || !canvasRef.current) return
-
-    const canvas = canvasRef.current
-    const video = videoRef.current
-    const ctx = canvas.getContext("2d")
-
-    const scanInterval = setInterval(() => {
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        canvas.width = video.videoWidth
-        canvas.height = video.videoHeight
-        ctx?.drawImage(video, 0, 0, canvas.width, canvas.height)
-
-        // Simple QR detection - in production use jsQR library
-        const imageData = ctx?.getImageData(0, 0, canvas.width, canvas.height)
-        // This is a placeholder - you'd need to use jsQR or similar library
-        // For now, we'll simulate QR detection
-      }
-    }, 500)
-
-    return () => clearInterval(scanInterval)
-  }, [isScanning])
-
-  const handleManualInput = (qrCode: string) => {
-    onScan(qrCode)
-    handleClose()
+  const handleManualInput = () => {
+    if (manualQRCode.trim()) {
+      onScan(manualQRCode)
+      setManualQRCode("")
+      handleClose()
+    }
   }
 
   const handleClose = () => {
@@ -80,6 +66,7 @@ export function QRCameraScanner({ isOpen, onClose, onScan }: QRCameraScannerProp
       tracks.forEach((track) => track.stop())
     }
     setIsScanning(false)
+    setManualQRCode("")
     onClose()
   }
 
@@ -91,26 +78,41 @@ export function QRCameraScanner({ isOpen, onClose, onScan }: QRCameraScannerProp
         </DialogHeader>
         <div className="space-y-4">
           {errorMessage && (
-            <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-sm text-destructive">
+            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm text-amber-700">
               {errorMessage}
             </div>
           )}
-          <div className="relative rounded-lg overflow-hidden bg-black aspect-square">
-            <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
-            <canvas ref={canvasRef} className="hidden" />
-            <div className="absolute inset-0 border-2 border-primary/30 rounded-lg pointer-events-none">
-              <div className="absolute inset-4 border border-dashed border-primary/50 rounded-lg" />
+
+          {cameraAvailable && (
+            <div className="relative rounded-lg overflow-hidden bg-black aspect-square">
+              <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+              <canvas ref={canvasRef} className="hidden" />
+              <div className="absolute inset-0 border-2 border-primary/30 rounded-lg pointer-events-none">
+                <div className="absolute inset-4 border border-dashed border-primary/50 rounded-lg" />
+              </div>
             </div>
+          )}
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Enter QR Code</label>
+            <Input
+              placeholder="Enter QR code manually"
+              value={manualQRCode}
+              onChange={(e) => setManualQRCode(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleManualInput()}
+            />
           </div>
+
           <div className="flex gap-2">
             <Button onClick={handleClose} variant="outline" className="flex-1 bg-transparent">
               Cancel
             </Button>
             <Button
-              onClick={() => handleManualInput("QR" + Math.random().toString(36).substr(2, 9))}
-              className="flex-1 bg-primary"
+              onClick={handleManualInput}
+              disabled={!manualQRCode.trim()}
+              className="flex-1 bg-primary hover:bg-primary/90"
             >
-              Use Camera
+              Scan
             </Button>
           </div>
         </div>
