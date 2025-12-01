@@ -19,8 +19,7 @@ import { useNotification } from "@/lib/notification-context" // Asumsi context i
 import { PencilIcon, Trash2, Loader2 } from 'lucide-react'
 import useSWR, { mutate } from 'swr' // Import SWR dan mutate
 import { fetcher } from '@/lib/fetcher' // Import fetcher
-import { DashboardLayout } from "@/components/dashboard-layout"
-
+import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 // --- Interfaces dan Types ---
 
 interface MasterUserData {
