@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     const isValid = await compare(password, userRecord.password)
     if (!isValid) {
       return NextResponse.json(
-        { success: false, message: `Invalid credentials` },
+        { success: false, message: `Wrong Password for user ${email} ` },
         { status: 401 }
       )
     }
