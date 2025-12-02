@@ -39,7 +39,7 @@ export default function MasterUsersPage() {
   const { addNotification } = useNotification()
 
   // 1. READ: Fetch Data dari API menggunakan SWR
-  const { data: users, error, isLoading } = useSWR<MasterUserData[]>('/api/users', fetcher)
+  const { data: users, error, isLoading } = useSWR<MasterUserData[]>('/api/v1/users', fetcher)
 
   // State untuk Dialog dan Loading
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
@@ -69,7 +69,7 @@ export default function MasterUsersPage() {
 
     setIsSubmitting(true)
     try {
-      const response = await fetch('/api/users', {
+      const response = await fetch('/api/v1/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -87,7 +87,7 @@ export default function MasterUsersPage() {
       setCreateDialogOpen(false)
 
       // Update UI: Revalidate SWR cache
-      mutate('/api/users')
+      mutate('/api/v1/users')
       addNotification("User Created", `Pengguna ${newUser.name} berhasil ditambahkan.`, "success")
 
     } catch (err: any) {
@@ -102,7 +102,7 @@ export default function MasterUsersPage() {
     if (!confirm(`Apakah Anda yakin ingin menghapus pengguna ${name}? Tindakan ini tidak dapat dibatalkan.`)) return
 
     try {
-      const response = await fetch(`/api/users/${id}`, {
+      const response = await fetch(`/api/v1/users/${id}`, {
         method: 'DELETE',
       })
 
@@ -133,7 +133,7 @@ export default function MasterUsersPage() {
     try {
       const { id, name, email, role, status } = editingUser;
 
-      const response = await fetch(`/api/users/${id}`, {
+      const response = await fetch(`/api/v1/users/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, role, status }),
@@ -149,7 +149,7 @@ export default function MasterUsersPage() {
       setEditingUser(null)
 
       // Update UI: Revalidate SWR cache
-      mutate('/api/users')
+      mutate('/api/v1/users')
       addNotification("User Updated", `Detail ${name} berhasil diperbarui.`, "success")
 
     } catch (err: any) {

@@ -67,6 +67,6 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     '/dashboard/:path*',
-    '/api/private/:path*'
+    '/api/v1/:path*'
   ],
 };
