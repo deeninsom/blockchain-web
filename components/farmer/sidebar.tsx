@@ -3,15 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-// Import ikon yang relevan untuk Petani
-import {
-  BarChart3, // Dashboard
-  Wheat,     // Tanaman / Hasil Panen (Harvest)
-  ListOrdered, // Daftar (misal: Riwayat)
-  Settings,   // Pengaturan
-  ChevronDown,
-  Warehouse // Gudang / Penyimpanan
-} from "lucide-react"
+import { BarChart3, PenTool, FileText, Eye, ChevronDown, User2, Settings } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface SidebarProps {
@@ -19,83 +11,44 @@ interface SidebarProps {
   onToggle: () => void
 }
 
-// Definisikan tipe untuk item menu
-interface SubmenuItem {
-  label: string;
-  href: string;
-}
-
-interface MenuItem {
-  label: string;
-  icon: any; // Menggunakan any untuk komponen Lucide Icon
-  href?: string;
-  submenu?: SubmenuItem[];
-}
-
-
 export function Sidebar({ isOpen, onToggle }: SidebarProps) {
   const pathname = usePathname()
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null)
 
-  // --- 1. LOGIKA PRE-EXPANSION DIBUAT UNTUK MENU PETANI ---
-  // Diperlukan agar sub-menu tetap terbuka saat di-refresh pada halaman sub-menu.
   useEffect(() => {
-    const menuItemsToCheck: MenuItem[] = [
+    const menuItems = [
       {
-        label: "Hasil Panen", // Ganti dari "Harvest" ke bahasa Indonesia
-        icon: Wheat,
-        submenu: [
-          { label: "Catat Hasil Panen", href: "/farmer/record-harvest" },
-          { label: "Riwayat Panen", href: "/farmer/harvest-history" }
-        ],
+        label: "Supply Chain",
+        paths: ["/dashboard/traceability", "/dashboard/data-comparison", "/dashboard/linking"],
       },
       {
-        label: "Gudang",
-        icon: Warehouse,
-        submenu: [
-          { label: "Penyimpanan Saya", href: "/farmer/inventory" }
-        ]
-      }
+        label: "Operations",
+        paths: ["/dashboard/qr-code", "/dashboard/consumer-scan", "/dashboard/upload-certificate"],
+      },
     ]
 
-    // Cek apakah path saat ini ada di dalam submenu
-    for (const item of menuItemsToCheck) {
-      if (item.submenu?.some((sub) => pathname.startsWith(sub.href))) {
-        setExpandedMenu(item.label)
+    for (const menu of menuItems) {
+      if (menu.paths.some((path) => pathname.startsWith(path))) {
+        setExpandedMenu(menu.label)
         return
       }
     }
     setExpandedMenu(null)
   }, [pathname])
 
-
-  // --- 2. PERBARUI MENU ITEMS KHUSUS PETANI ---
-  const menuItems: MenuItem[] = [
+  const menuItems = [
     {
       label: "Dashboard",
       icon: BarChart3,
-      href: "/farmer", // Base path untuk Petani
+      href: "/farmer",
     },
     {
-      label: "Hasil Panen",
-      icon: Wheat,
+      label: "Harvest",
+      icon: Eye,
       submenu: [
-        { label: "Catat Hasil Panen", href: "/farmer/record-harvest" },
-        { label: "Riwayat Panen", href: "/farmer/harvest-history" } // Contoh menu lain
+        { label: "Record Harvest", href: "/farmer/record-harvest" }
       ],
-    },
-    {
-      label: "Gudang",
-      icon: Warehouse,
-      submenu: [
-        { label: "Penyimpanan Saya", href: "/farmer/inventory" }
-      ],
-    },
-    {
-      label: "Pengaturan",
-      icon: Settings,
-      href: "/farmer/settings",
-    },
+    }
   ]
 
   return (
@@ -110,23 +63,22 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
           isOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        {/* Sidebar Header (Dibiarkan sama, asumsikan Metamask Supply Chain adalah nama aplikasi) */}
+        {/* Sidebar Header */}
         <div className="p-6 border-b border-sidebar-border flex items-center gap-3">
           <div className="w-10 h-10 bg-sidebar-primary rounded-lg flex items-center justify-center">
             <span className="text-sidebar-primary-foreground font-bold">M</span>
           </div>
           <div>
             <h2 className="font-bold text-sidebar-foreground">Metamask</h2>
-            <p className="text-xs text-muted-foreground">Petani Dashboard</p> {/* Diperbarui */}
+            <p className="text-xs text-muted-foreground">Supply Chain</p>
           </div>
         </div>
 
         {/* Menu Items */}
         <nav className="flex-1 overflow-y-auto p-4 space-y-2">
           {menuItems.map((item) => {
-            // Cek apakah item aktif: cek href (untuk item tanpa submenu) atau cek submenu
             const isActive = pathname === item.href
-            const hasActiveSubmenu = item.submenu?.some((sub) => pathname.startsWith(sub.href)) // Gunakan startsWith untuk path yang lebih kompleks
+            const hasActiveSubmenu = item.submenu?.some((sub) => pathname === sub.href)
 
             return (
               <div key={item.label}>
@@ -135,8 +87,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                     onClick={() => setExpandedMenu(expandedMenu === item.label ? null : item.label)}
                     className={cn(
                       "w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                      // Highlight menu utama jika ada submenu yang aktif
-                      hasActiveSubmenu || expandedMenu === item.label
+                      hasActiveSubmenu
                         ? "bg-sidebar-accent text-sidebar-primary"
                         : "hover:bg-sidebar-accent text-sidebar-foreground",
                     )}
@@ -146,7 +97,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                       <span>{item.label}</span>
                     </div>
                     <ChevronDown
-                      className={cn("h-4 w-4 transition-transform", (expandedMenu === item.label || hasActiveSubmenu) && "rotate-180")}
+                      className={cn("h-4 w-4 transition-transform", expandedMenu === item.label && "rotate-180")}
                     />
                   </button>
                 ) : (
@@ -165,11 +116,10 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
                 )}
 
                 {/* Submenu */}
-                {item.submenu && (expandedMenu === item.label || hasActiveSubmenu) && (
+                {item.submenu && expandedMenu === item.label && (
                   <div className="mt-1 ml-4 space-y-1 border-l border-sidebar-accent pl-3">
                     {item.submenu.map((subitem) => {
-                      // Gunakan startsWith untuk mencocokkan path seperti /farmer/harvest-history/create
-                      const isSubitemActive = pathname.startsWith(subitem.href)
+                      const isSubitemActive = pathname === subitem.href
 
                       return (
                         <Link
@@ -193,7 +143,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
           })}
         </nav>
 
-        {/* Footer (Tetap Sama) */}
+        {/* Footer */}
         <div className="p-4 border-t border-sidebar-border">
           <div className="px-4 py-3 rounded-lg bg-sidebar-accent/50">
             <p className="text-xs font-semibold text-sidebar-foreground mb-1">Version</p>

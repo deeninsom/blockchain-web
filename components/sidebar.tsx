@@ -20,6 +20,11 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
       href: "/dashboard",
     },
     {
+      label: "Harvest",
+      icon: Eye,
+      href: "/farmer/record-harvest",
+    },
+    {
       label: "Supply Chain",
       icon: Eye,
       submenu: [
