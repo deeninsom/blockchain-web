@@ -123,6 +123,7 @@ export const config = {
   matcher: [
     '/dashboard/:path*',
     '/farmer/:path*',
-    '/api/v1/:path*'
+    '/api/v1/:path*',
+    // '/((?!api/v1/harvest/record|static|_next/static|_next/image|favicon.ico).*)',
   ],
 };

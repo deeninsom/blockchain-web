@@ -1,7 +1,9 @@
+// components/farmer/camera-capture.tsx
+
 "use client"
 
 import React, { useRef, useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button" // Asumsi komponen Button Shadcn
 import { Camera, RefreshCcw, X, AlertTriangle, Download } from "lucide-react"
 
 interface CameraCaptureProps {
@@ -15,16 +17,14 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
   const [stream, setStream] = useState<MediaStream | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null)
-  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment'); // Default: kamera belakang
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
 
-  // FUNGSI UTAMA: Memulai streaming kamera
   const startCamera = async (mode: 'user' | 'environment') => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setError("Browser Anda tidak mendukung WebRTC API (kamera).")
+      setError("Browser Anda tidak mendukung kamera.")
       return
     }
 
-    // Menghentikan stream sebelumnya jika ada
     if (stream) {
       stream.getTracks().forEach(track => track.stop())
     }
@@ -37,7 +37,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
       const newStream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: mode,
-          width: 1280, // Resolusi target
+          width: 1280,
           height: 720,
         },
         audio: false,
@@ -49,42 +49,34 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
       setStream(newStream)
     } catch (err) {
       console.error("Gagal mengakses kamera:", err)
-      setError("Izin kamera ditolak atau kamera tidak tersedia. Pastikan izin telah diberikan.")
+      setError("Izin kamera ditolak atau kamera tidak tersedia.")
     }
   }
 
-  // Efek untuk menjalankan kamera saat komponen dimuat
   useEffect(() => {
     startCamera(facingMode)
 
     return () => {
-      // Membersihkan stream saat komponen di-unmount
       if (stream) {
         stream.getTracks().forEach(track => track.stop())
       }
     }
   }, [facingMode])
 
-  // FUNGSI: Mengambil foto dari video stream
   const takePhoto = () => {
     const video = videoRef.current
     const canvas = canvasRef.current
 
     if (video && canvas) {
-      // Pastikan canvas memiliki ukuran yang sama dengan video
       canvas.width = video.videoWidth
       canvas.height = video.videoHeight
       const context = canvas.getContext('2d')
 
       if (context) {
-        // Gambar frame saat ini ke canvas
         context.drawImage(video, 0, 0, canvas.width, canvas.height)
-
-        // Simpan data URL
         const dataUrl = canvas.toDataURL('image/jpeg', 0.9)
         setPhotoDataUrl(dataUrl)
 
-        // Hentikan video stream setelah mengambil foto
         if (stream) {
           stream.getTracks().forEach(track => track.stop())
           setStream(null)
@@ -93,11 +85,9 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     }
   }
 
-  // FUNGSI: Mengonversi Data URL menjadi File dan memicu onCapture
   const savePhoto = () => {
     if (!photoDataUrl) return
 
-    // Konversi Data URL ke Blob
     const byteString = atob(photoDataUrl.split(',')[1])
     const mimeString = photoDataUrl.split(',')[0].split(':')[1].split(';')[0]
     const ab = new ArrayBuffer(byteString.length)
@@ -107,7 +97,6 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     }
     const blob = new Blob([ab], { type: mimeString })
 
-    // Buat objek File
     const fileName = `panen-${new Date().toISOString().replace(/[:.]/g, '-')}.jpeg`
     const photoFile = new File([blob], fileName, { type: mimeString })
 
@@ -115,11 +104,9 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-100 bg-black/90 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-2xl bg-card rounded-lg shadow-2xl overflow-hidden">
-
-        {/* Header Modal */}
-        <div className="flex justify-between items-center p-4 border-b border-border">
+    <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-0 sm:p-4">
+      <div className="w-full h-full sm:max-w-2xl sm:h-auto sm:max-h-[95vh] bg-card rounded-none sm:rounded-lg shadow-2xl overflow-hidden flex flex-col">
+        <div className="flex justify-between items-center p-4 border-b border-border flex-shrink-0">
           <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
             <Camera className="h-6 w-6" /> Ambil Foto Panen
           </h3>
@@ -128,45 +115,35 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
           </button>
         </div>
 
-        {/* Konten Utama */}
-        <div className="p-4 relative min-h-[150px] flex items-center justify-center bg-gray-900">
-
+        <div className="relative flex-grow min-h-0 flex items-center justify-center bg-gray-900 overflow-hidden">
           {error && (
             <div className="absolute inset-0 flex items-center justify-center bg-red-900/80 p-4 z-10 text-white">
               <AlertTriangle className="h-6 w-6 mr-2" /> {error}
             </div>
           )}
-
-          {/* Elemen Video (Tampilan Kamera) */}
           <video
             ref={videoRef}
-            className="w-full min-h-[150px] max-h-[80vh] object-contain rounded-md"
+            className="w-full h-full object-cover"
             autoPlay
             playsInline
             muted
-            hidden={!stream || !!photoDataUrl} // Sembunyikan jika ada foto atau error
+            hidden={!stream || !!photoDataUrl}
           />
-
-          {/* Elemen Canvas (Tersembunyi, hanya untuk capture) */}
           <canvas ref={canvasRef} style={{ display: 'none' }} />
-
-          {/* Tampilan Preview Foto */}
           {photoDataUrl && (
             <img
               src={photoDataUrl}
               alt="Preview Foto Panen"
-              className="w-full h-auto max-h-[80vh] object-contain rounded-md border border-primary"
+              className="w-full h-full object-contain rounded-md border border-primary"
             />
           )}
         </div>
 
-        {/* Footer Kontrol */}
-        <div className="p-4 flex flex-wrap justify-between gap-3 border-t border-border">
+        <div className="p-4 flex flex-wrap justify-between gap-3 border-t border-border flex-shrink-0">
           {photoDataUrl ? (
-            // Mode Review Foto
             <>
               <Button
-                onClick={() => startCamera(facingMode)} // Kembali ke kamera dengan mode yang sama
+                onClick={() => startCamera(facingMode)}
                 variant="outline"
                 className="flex-1 bg-muted hover:bg-muted/80"
               >
@@ -180,7 +157,6 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
               </Button>
             </>
           ) : (
-            // Mode Kamera Aktif
             <>
               <Button
                 onClick={() => setFacingMode(f => f === 'user' ? 'environment' : 'user')}
@@ -193,9 +169,9 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
               <Button
                 onClick={takePhoto}
                 disabled={!stream || !!error}
-                className="w-full sm:flex-1 bg-primary  text-white text-lg font-bold"
+                className="w-full sm:flex-1 bg-primary hover:bg-primary/90 text-primary-foreground text-lg font-bold"
               >
-                <Camera className="h-6 w-6" />
+                <Camera className="h-6 w-6 mr-2" /> JEPET!
               </Button>
             </>
           )}
