@@ -17,10 +17,9 @@ import {
 } from "@/components/ui/select"
 import { useNotification } from "@/lib/notification-context"
 import { PencilIcon, Trash2, Loader2 } from 'lucide-react'
-import useSWR, { mutate } from 'swr' // Import SWR dan mutate
-import { fetcher } from '@/lib/fetcher' // Import fetcher
+import useSWR, { mutate } from 'swr'
+import { fetcher } from '@/lib/fetcher'
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
-// --- Interfaces dan Types ---
 
 interface MasterUserData {
   id: string
@@ -30,37 +29,29 @@ interface MasterUserData {
   status: string
 }
 
-// Data yang dibutuhkan saat membuat user baru
 interface NewUserPayload extends Omit<MasterUserData, 'id' | 'status'> {
-  password: string; // Password wajib saat CREATE
+  password: string;
 }
 
 export default function MasterUsersPage() {
   const { addNotification } = useNotification()
 
-  // 1. READ: Fetch Data dari API menggunakan SWR
   const { data: users, error, isLoading } = useSWR<MasterUserData[]>('/api/v1/users', fetcher)
 
-  // State untuk Dialog dan Loading
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // State untuk Add User
   const [newUser, setNewUser] = useState<NewUserPayload & { status: string }>({
     name: "",
     email: "",
     role: "",
-    status: "Active", // Default status di frontend saat create
+    status: "Active",
     password: ""
   })
 
-  // State untuk Edit User
   const [editingUser, setEditingUser] = useState<MasterUserData | null>(null)
 
-  // --- Fungsi CRUD ---
-
-  // CREATE (POST)
   const addUser = async () => {
     if (!newUser.name || !newUser.email || !newUser.role || !newUser.password) {
       addNotification("Validasi Error", "Nama, Email, Peran, dan Password wajib diisi.", "error")
@@ -82,11 +73,9 @@ export default function MasterUsersPage() {
         throw new Error(errorData.error || 'Gagal membuat pengguna')
       }
 
-      // Reset state & tutup dialog
       setNewUser({ name: "", email: "", role: "", status: "Active", password: "" })
       setCreateDialogOpen(false)
 
-      // Update UI: Revalidate SWR cache
       mutate('/api/v1/users')
       addNotification("User Created", `Pengguna ${newUser.name} berhasil ditambahkan.`, "success")
 
@@ -97,7 +86,6 @@ export default function MasterUsersPage() {
     }
   }
 
-  // DELETE
   const deleteUser = async (id: string, name: string) => {
     if (!confirm(`Apakah Anda yakin ingin menghapus pengguna ${name}? Tindakan ini tidak dapat dibatalkan.`)) return
 
@@ -110,7 +98,6 @@ export default function MasterUsersPage() {
         throw new Error('Gagal menghapus pengguna')
       }
 
-      // Update UI: Revalidate SWR cache
       mutate('/api/users')
       addNotification("User Deleted", `Pengguna ${name} berhasil dihapus.`, "info")
 
@@ -119,13 +106,11 @@ export default function MasterUsersPage() {
     }
   }
 
-  // Fungsi untuk membuka dialog edit
   const handleEdit = (user: MasterUserData) => {
     setEditingUser(user)
     setEditDialogOpen(true)
   }
 
-  // UPDATE (PATCH)
   const saveEditedUser = async () => {
     if (!editingUser) return
 
@@ -144,11 +129,9 @@ export default function MasterUsersPage() {
         throw new Error(errorData.error || 'Gagal mengupdate pengguna')
       }
 
-      // Tutup dialog
       setEditDialogOpen(false)
       setEditingUser(null)
 
-      // Update UI: Revalidate SWR cache
       mutate('/api/v1/users')
       addNotification("User Updated", `Detail ${name} berhasil diperbarui.`, "success")
 
@@ -158,8 +141,6 @@ export default function MasterUsersPage() {
       setIsSubmitting(false)
     }
   }
-
-  // --- Render Status ---
 
   if (error) return <DashboardLayout>
     <div className="text-red-500">Gagal memuat pengguna: {error.message}</div>
@@ -176,14 +157,12 @@ export default function MasterUsersPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Master Users</h1>
             <p className="text-muted-foreground mt-1">Manage platform administrators and key accounts.</p>
           </div>
 
-          {/* 1. Dialog for Creating User */}
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-primary hover:bg-primary/90">Add New Master User</Button>
@@ -302,7 +281,6 @@ export default function MasterUsersPage() {
         </Card>
       </div>
 
-      {/* 2. Dialog for Editing User */}
       {editingUser && (
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent>
@@ -338,7 +316,6 @@ export default function MasterUsersPage() {
                 </SelectContent>
               </Select>
 
-              {/* Status Input untuk Edit User */}
               <Select
                 value={editingUser.status}
                 onValueChange={(value) => setEditingUser({ ...editingUser, status: value })}
