@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BarChart3, PenTool, FileText, Eye, ChevronDown, User2, Settings } from "lucide-react"
+import { BarChart3, PenTool, FileText, Eye, ChevronDown, User2, Settings, Wheat } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface SidebarProps {
@@ -18,13 +18,9 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
   useEffect(() => {
     const menuItems = [
       {
-        label: "Supply Chain",
-        paths: ["/dashboard/traceability", "/dashboard/data-comparison", "/dashboard/linking"],
-      },
-      {
-        label: "Operations",
-        paths: ["/dashboard/qr-code", "/dashboard/consumer-scan", "/dashboard/upload-certificate"],
-      },
+        label: "Harvest",
+        paths: ["/farmer/record-harvest"],
+      }
     ]
 
     for (const menu of menuItems) {
@@ -44,11 +40,11 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
     },
     {
       label: "Harvest",
-      icon: Eye,
+      icon: Wheat,
       submenu: [
         { label: "Record Harvest", href: "/farmer/record-harvest" }
       ],
-    }
+    },
   ]
 
   return (

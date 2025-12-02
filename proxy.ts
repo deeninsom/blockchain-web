@@ -109,12 +109,6 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-
-  // Lanjutkan jika:
-  // a) Token valid, DAN
-  // b) Akses ke API v1, ATAU
-  // c) Akses ke halaman yang sesuai dengan role mereka.
-
   const response = NextResponse.next();
 
   if (isAllowedOrigin) {

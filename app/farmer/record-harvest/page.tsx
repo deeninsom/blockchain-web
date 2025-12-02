@@ -6,7 +6,7 @@ import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
+import { FarmerLayout } from "@/components/farmer/farmer-layout"
 import { useNotification } from "@/lib/notification-context"
 
 interface HarvestRecord {
@@ -105,7 +105,7 @@ export default function RecordHarvestPage() {
   }
 
   return (
-    <DashboardLayout>
+    <FarmerLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -255,10 +255,10 @@ export default function RecordHarvestPage() {
                       <div className="flex items-center gap-2 mt-1">
                         <span
                           className={`h-2 w-2 rounded-full ${record.status === "confirmed"
-                              ? "bg-green-500"
-                              : record.status === "submitted"
-                                ? "bg-yellow-500"
-                                : "bg-gray-500"
+                            ? "bg-green-500"
+                            : record.status === "submitted"
+                              ? "bg-yellow-500"
+                              : "bg-gray-500"
                             }`}
                         />
                         <p className="text-sm font-medium text-foreground capitalize">{record.status}</p>
@@ -316,6 +316,6 @@ export default function RecordHarvestPage() {
           )}
         </div>
       </div>
-    </DashboardLayout>
+    </FarmerLayout>
   )
 }
