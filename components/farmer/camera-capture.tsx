@@ -129,7 +129,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
         </div>
 
         {/* Konten Utama */}
-        <div className="p-4 relative min-h-[300px] flex items-center justify-center bg-gray-900">
+        <div className="p-4 relative min-h-[150px] flex items-center justify-center bg-gray-900">
 
           {error && (
             <div className="absolute inset-0 flex items-center justify-center bg-red-900/80 p-4 z-10 text-white">
@@ -140,7 +140,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
           {/* Elemen Video (Tampilan Kamera) */}
           <video
             ref={videoRef}
-            className="w-full h-auto max-h-[80vh] object-contain rounded-md"
+            className="w-full min-h-[150px] max-h-[80vh] object-contain rounded-md"
             autoPlay
             playsInline
             muted
