@@ -1,13 +1,15 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { FarmerLayout } from "@/components/farmer/farmer-layout"
 import { useNotification } from "@/lib/notification-context"
+import { Camera, Trash, CheckCircle } from "lucide-react"
+import { CameraCapture } from "@/components/farmer/camera-capture" // Asumsi disimpan di './camera-capture.tsx'
+
 
 interface HarvestRecord {
   id: string
@@ -27,6 +29,7 @@ export default function RecordHarvestPage() {
   const { addNotification } = useNotification()
   const [records, setRecords] = useState<HarvestRecord[]>([])
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isCameraOpen, setIsCameraOpen] = useState(false) // State baru untuk mengontrol modal kamera
   const [formData, setFormData] = useState({
     batchId: "",
     location: "",
@@ -41,14 +44,38 @@ export default function RecordHarvestPage() {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
+  // Fungsi untuk menangani foto yang diupload dari file input (Fungsionalitas lama tetap ada)
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
-    setFormData((prev) => ({ ...prev, photos: files }))
+    setFormData((prev) => ({ ...prev, photos: [...prev.photos, ...files] }))
+    addNotification("Berhasil", `${files.length} foto berhasil ditambahkan`, "success");
   }
+
+  // Fungsi baru: Menangani foto yang diambil dari CameraCapture
+  const handlePhotoCaptured = (file: File) => {
+    setFormData((prev) => ({
+      ...prev,
+      photos: [...prev.photos, file],
+    }));
+    setIsCameraOpen(false); // Tutup kamera setelah foto diambil
+    addNotification("Berhasil", `Foto (${file.name}) berhasil diambil`, "success");
+  };
+
+  // Fungsi baru: Menghapus foto dari daftar
+  const removePhoto = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      photos: prev.photos.filter((_, i) => i !== index),
+    }));
+  };
 
   const handleSubmitHarvest = async () => {
     if (!formData.batchId || !formData.location || !formData.harvestDate || !formData.quantity) {
       addNotification("Error", "Semua field wajib diisi", "error")
+      return
+    }
+    if (formData.photos.length === 0) {
+      addNotification("Error", "Mohon tambahkan setidaknya satu foto panen", "error")
       return
     }
 
@@ -60,12 +87,13 @@ export default function RecordHarvestPage() {
         harvestDate: formData.harvestDate,
         quantity: formData.quantity,
         unit: formData.unit,
-        photos: formData.photos.map((f) => f.name),
+        photos: formData.photos.map((f) => f.name), // Simpan hanya nama file untuk simulasi
         status: "pending",
         createdAt: new Date().toLocaleString("id-ID"),
       }
 
       setRecords((prev) => [newRecord, ...prev])
+      // Reset form
       setFormData({
         batchId: "",
         location: "",
@@ -193,17 +221,53 @@ export default function RecordHarvestPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Upload Foto</label>
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handlePhotoUpload}
-                  className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-                />
-                {formData.photos.length > 0 && (
-                  <p className="text-sm text-muted-foreground mt-2">{formData.photos.length} foto dipilih</p>
-                )}
+                <label className="block text-sm font-medium text-foreground mb-2">Upload/Ambil Foto Panen</label>
+
+                {/* Tampilan Foto yang Sudah Ditambahkan */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {formData.photos.map((file, index) => (
+                    <div
+                      key={index}
+                      className="relative border border-primary/50 bg-primary/10 rounded-lg px-3 py-1 flex items-center gap-2 text-sm text-primary"
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      <span>{file.name.length > 20 ? file.name.substring(0, 17) + '...' : file.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(index)}
+                        className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100 transition-colors"
+                        title="Hapus foto ini"
+                      >
+                        <Trash className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {/* Tombol Ambil Foto dari Kamera */}
+                  <Button
+                    type="button"
+                    onClick={() => setIsCameraOpen(true)}
+                    className="bg-primary text-white"
+                    title="Ambil foto panen langsung menggunakan kamera perangkat"
+                  >
+                    <Camera className="h-4 w-4 mr-2" /> Ambil Foto Sekarang
+                  </Button>
+
+                  {/* Input File (Opsional, untuk upload dari galeri) */}
+                  <label className="block text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-200 file:text-gray-700 hover:file:bg-gray-300 cursor-pointer">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      className="sr-only"
+                    />
+                    Upload dari Galeri
+                  </label>
+                </div>
+
               </div>
 
               <div className="flex gap-3 justify-end">
@@ -217,6 +281,7 @@ export default function RecordHarvestPage() {
                 <Button
                   onClick={handleSubmitHarvest}
                   className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                  disabled={formData.photos.length === 0}
                 >
                   Catat & Kirim ke Blockchain
                 </Button>
@@ -225,7 +290,16 @@ export default function RecordHarvestPage() {
           </Card>
         )}
 
-        {/* Records List */}
+        {/* Modal Kamera - Ditempatkan di luar Card agar berfungsi sebagai modal penuh */}
+        {isCameraOpen && (
+          <CameraCapture
+            onCapture={handlePhotoCaptured}
+            onClose={() => setIsCameraOpen(false)}
+          />
+        )}
+
+
+        {/* Records List (Tidak diubah) */}
         <div className="space-y-3">
           {records.length === 0 ? (
             <Card className="border-border bg-card/50 backdrop-blur">
