@@ -1,28 +1,70 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Lock, Mail, Eye, EyeOff } from "lucide-react"
 
+import { useRouter } from 'next/navigation'
+import { useNotification } from "@/lib/notification-context"
+
 interface LoginPageProps {
   onSwitchToRegister: () => void
 }
 
 export function LoginPage({ onSwitchToRegister }: LoginPageProps) {
+
+  const { addNotification } = useNotification()
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [email, setEmail] = useState("admin@metamask.io")
+  const [password, setPassword] = useState("password123")
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const router = useRouter()
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    setTimeout(() => {
-      window.location.href = "/dashboard"
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        console.log('respone', response.ok)
+        localStorage.setItem('authToken', data.token);
+
+        addNotification(
+          "Login Berhasil",
+          `Selamat datang kembali, ${data.user.name || data.user.email}!`,
+          "success"
+        )
+        router.push("/dashboard")
+      } else {
+        addNotification(
+          "Login Gagal",
+          data.message || "Email atau password salah. Silakan coba lagi.",
+          "error"
+        )
+      }
+    } catch (error) {
+      addNotification(
+        "Error Jaringan",
+        "Tidak dapat terhubung ke server. Periksa koneksi Anda.",
+        "error"
+      )
+    } finally {
       setIsLoading(false)
-    }, 1000)
+    }
   }
 
   return (
@@ -58,7 +100,8 @@ export function LoginPage({ onSwitchToRegister }: LoginPageProps) {
                     id="email"
                     type="email"
                     placeholder="you@example.com"
-                    defaultValue="admin@metamask.io"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 bg-input border-border text-foreground placeholder:text-muted-foreground"
                     required
                   />
@@ -76,7 +119,8 @@ export function LoginPage({ onSwitchToRegister }: LoginPageProps) {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    defaultValue="password123"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10 bg-input border-border text-foreground placeholder:text-muted-foreground"
                     required
                   />

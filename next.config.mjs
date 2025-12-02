@@ -1,4 +1,4 @@
-// next.config.mjs (Hapus allowedDevOrigins)
+// next.config.mjs
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -8,11 +8,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Hapus seluruh blok experimental jika Anda hanya menggunakannya untuk allowedDevOrigins
-  // Jika ada eksperimen lain, pertahankan, tetapi HAPUS allowedDevOrigins.
-  // experimental: { 
-  //   allowedDevOrigins: [ ... ] 
-  // }, 
+
+  crossOrigin: 'anonymous',
 }
 
-export default nextConfig
+export default nextConfig;

@@ -1,51 +1,70 @@
 import { NextResponse, NextRequest } from 'next/server';
+import jwt from 'jsonwebtoken';
 
-// Ganti nama fungsi menjadi middleware (opsional, tapi disarankan)
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://192.168.60.12:3000'
+];
+
+const corsOptions = {
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Max-Age': '86400',
+};
+
+
+const JWT_SECRET = process.env.AUTH_SECRET || "your_super_secret_fallback";
+
 export async function proxy(request: NextRequest) {
-  // 1. Dapatkan token dari Cookie, Header, atau lokasi lain
-  // Contoh: Mendapatkan token dari 'auth_token' cookie
-  const token = request.cookies.get('auth_token')?.value;
-
-  // Anda juga bisa mencoba mendapatkan dari Authorization Header jika itu API route
-  // const authHeader = request.headers.get('Authorization');
-  // const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
-
-  // URL tujuan pengalihan jika otentikasi gagal (misalnya, halaman login)
+  const origin = request.headers.get('origin') ?? '';
+  const isAllowedOrigin = allowedOrigins.includes(origin);
   const loginUrl = new URL('/', request.url);
 
-  // 2. Lakukan Pemeriksaan Token
+  if (request.method === 'OPTIONS') {
+    const headers: Record<string, string> = {
+      ...corsOptions,
+    };
+
+    if (isAllowedOrigin) {
+      headers['Access-Control-Allow-Origin'] = origin;
+      headers['Access-Control-Allow-Credentials'] = 'true';
+    }
+
+    return new NextResponse(null, { status: 204, headers });
+  }
+
+  const token = request.cookies.get('auth_token')?.value;
 
   if (!token) {
-    // Jika token tidak ada, alihkan ke halaman login
-    console.log('Token tidak ditemukan, mengalihkan ke /login');
-    // Opsional: Tambahkan query parameter 'from' agar setelah login bisa kembali ke URL ini
-    // loginUrl.searchParams.set('from', request.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // 3. Opsi Lanjutan: Memvalidasi Token (misalnya, dengan memanggil API)
-  // Untuk skenario nyata, Anda mungkin perlu memanggil API untuk memvalidasi token JWT
-  // const isValid = await validateTokenOnServer(token); // Anggap ini fungsi yang Anda buat
-
-  // Contoh sederhana: Menganggap token valid hanya jika bernilai 'valid-secret-token'
-  const isValid = token === 'valid-secret-token'; // GANTI dengan logika validasi nyata!
+  let isValid = false;
+  try {
+    jwt.verify(token, JWT_SECRET);
+    isValid = true;
+  } catch (e) {
+    console.error("JWT Verification Failed:", e);
+    isValid = false;
+  }
 
   if (!isValid) {
-    console.log('Token tidak valid, mengalihkan ke /login');
-    // Hapus token yang tidak valid (jika disimpan di cookie)
     const response = NextResponse.redirect(loginUrl);
     response.cookies.delete('auth_token');
     return response;
   }
 
-  // 4. Jika token valid, lanjutkan ke rute yang diminta
-  console.log('Token valid, melanjutkan akses...');
-  return NextResponse.next();
+  const response = NextResponse.next();
+
+  if (isAllowedOrigin) {
+    response.headers.set('Access-Control-Allow-Origin', origin);
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
+  }
+
+  return response;
 }
 
-// Konfigurasi matcher untuk menentukan path mana yang akan dilindungi
 export const config = {
-  // Melindungi semua path di bawah /dashboard/
   matcher: [
     '/dashboard/:path*',
     '/api/private/:path*'

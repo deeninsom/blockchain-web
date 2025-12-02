@@ -3,6 +3,8 @@ import prisma from "@/lib/prisma"
 import { compare } from "bcryptjs"
 import jwt from "jsonwebtoken"
 
+const JWT_SECRET = process.env.AUTH_SECRET || "DEFAULT_SECRET_FOR_DEV_ONLY";
+
 export async function POST(req: Request) {
   try {
     const { email, password } = await req.json()
@@ -14,42 +16,50 @@ export async function POST(req: Request) {
       )
     }
 
-    // Cari user
-    const user = await prisma.user.findUnique({ where: { email } })
-    if (!user) {
+    const userRecord = await prisma.user.findUnique({ where: { email } })
+    if (!userRecord) {
       return NextResponse.json(
-        { success: false, message: "Invalid credentials" },
+        { success: false, message: `User ${email} not registered` },
         { status: 401 }
       )
     }
 
-    // Validasi password
-    const isValid = await compare(password, user.password)
+    const isValid = await compare(password, userRecord.password)
     if (!isValid) {
       return NextResponse.json(
-        { success: false, message: "Invalid credentials" },
+        { success: false, message: `Invalid credentials` },
         { status: 401 }
       )
     }
 
-    // Generate manual JWT (for non-NextAuth usage)
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      process.env.NEXTAUTH_SECRET!,
+      { id: userRecord.id, email: userRecord.email, role: userRecord.role },
+      JWT_SECRET,
       { expiresIn: "7d" }
     )
 
-    return NextResponse.json({
+    const userData = {
+      id: userRecord.id,
+      name: userRecord.name,
+      email: userRecord.email,
+      role: userRecord.role,
+    }
+
+    const response = NextResponse.json({
       success: true,
       message: "Login successful",
-      token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
-    })
+      user: userData,
+    }, { status: 200 });
+
+
+    response.cookies.set('auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    });
+
+    return response;
   } catch (err) {
     console.error("LOGIN ERROR:", err)
     return NextResponse.json(
