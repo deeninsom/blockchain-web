@@ -1,42 +1,45 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  # Layanan Database PostgreSQL
+  # ============================
+  # PostgreSQL Database
+  # ============================
   db:
-    image: postgres:15-alpine # Menggunakan image PostgreSQL versi 15 yang ringan
-    container_name: next_postgres_db
-    restart: always
+    image: postgres:15-alpine
+    container_name: postgres_db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: nextjs_db
-    ports:
-      - "5432:5432" # Membuka port 5432 di host Anda
     volumes:
-      - postgres_data:/var/lib/postgresql/data # Volume untuk menyimpan data secara persisten
+      - postgres_data:/var/lib/postgresql/data
 
-  # Layanan Aplikasi Next.js
-  app:
-    build:
-      context: . # Mencari Dockerfile di direktori saat ini
-      dockerfile: Dockerfile
-    container_name: nextjs_app
-    restart: on-failure
+  # ============================
+  # IPFS (Kubo / go-ipfs)
+  # ============================
+  ipfs:
+    image: ipfs/kubo:latest
+    container_name: ipfs_node
+    restart: unless-stopped
     ports:
-      - "3000:3000" # Membuka port 3000 (default Next.js)
+      - "4001:4001"   # Swarm
+      - "5001:5001"   # API (upload)
+      - "8080:8080"   # Gateway (access)
+    volumes:
+      - ipfs_staging:/export
+      - ipfs_data:/data/ipfs
     environment:
-      # Variabel environment yang menghubungkan Next.js ke container DB
-      # Catatan: 'db' adalah nama host internal Docker Compose
-      DATABASE_URL: postgresql://user:password@db:5432/nextjs_db
-      NODE_ENV: development
-    # Memastikan container 'db' berjalan sebelum 'app' dimulai
-    depends_on:
-      - db
-    # Mounting untuk Live Reloading (Hanya untuk Development)
-    volumes:
-      - .:/app
-      - /app/node_modules # Menghindari overwrite node_modules dari host
+      IPFS_PROFILE: server
+    command: [
+      "daemon",
+      "--enable-gc",
+      "--migrate=true"
+    ]
 
-# Volume untuk persistensi data database
 volumes:
   postgres_data:
+  ipfs_staging:
+  ipfs_data:

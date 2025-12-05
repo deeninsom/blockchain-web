@@ -1,9 +1,6 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
+// ========================================================================
+// Generator & Datasource
+// ========================================================================
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,27 +11,88 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// ========================================================================
+// 1. USER (Aktor Sistem)
+// Petani, Pengepul, Distributor, Retailer, Admin
+// ========================================================================
 model User {
   id       String @id @default(uuid())
   name     String
   email    String @unique
   password String
-  role     String
-  status   String
+
+  // "FARMER" | "COLLECTOR" | "DISTRIBUTOR" | "RETAILER" | "ADMIN"
+  role   String
+  status String // Active/Inactive
+
+  // Relasi
+  batches       Batch[] // Batch yang dibuat
+  productEvents ProductEvent[] // Event yang dilakukan user (actor)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model HarvestRecord {
+// ========================================================================
+// 2. BATCH (Hasil panen yang diupload oleh Petani)
+// Satu batch = 1 hasil panen utama
+// ========================================================================
+model Batch {
   id          String   @id @default(uuid())
-  batchId     String
-  location    String
-  harvestDate DateTime
-  quantity    Float
-  unit        String
-  photoUrl    String
+  batchId     String   @unique // batchID dari mobile app
+  productName String
+  harvestTime DateTime
+  location    String // GPS / alamat panen
+
+  // IPFS multimedia (foto panen)
+  photoIpfsHash String
+
+  // Petani pembuat
+  farmer   User   @relation(fields: [farmerId], references: [id])
+  farmerId String
+
+  // Semua event dari batch ini
+  events ProductEvent[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([batchId])
+  @@index([farmerId])
+}
+
+// ========================================================================
+// 3. PRODUCT EVENT (Riwayat Off-chain hasil subscribe Event Smart Contract)
+// ========================================================================
+
+model ProductEvent {
+  id String @id @default(uuid())
+
+  // Dari smart contract event
+  batchId        String
+  eventType      Int // 1=Harvest, 2=SendToCollector, 3=Received, dst…
+  eventName      String? // Human readable name
+  ipfsHash       String // IPFS metadata hash (payload JSON)
+  actorAddress   String // Wallet address actor
+  blockTimestamp DateTime
+
+  // Audit Blockchain
+  txHash      String @unique
+  blockNumber BigInt
+  logIndex    Int
+
+  // Relasi actor (off-chain)
+  actorUser   User?   @relation(fields: [actorUserId], references: [id])
+  actorUserId String?
+
+  // Relasi ke batch
+  batch      Batch?  @relation(fields: [batchRefId], references: [id])
+  batchRefId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([batchId])
+  @@index([actorAddress])
+  @@index([eventType])
 }

@@ -4,7 +4,8 @@ import jwt, { JwtPayload } from 'jsonwebtoken'; // Import JwtPayload untuk typin
 // ... (Bagian allowedOrigins, corsOptions, dan JWT_SECRET tetap sama)
 const allowedOrigins = [
   'http://localhost:3000',
-  'http://192.168.60.12:3000'
+  'http://192.168.60.12:3000',
+  'http://192.168.1.69:3000'
 ];
 
 const corsOptions = {
