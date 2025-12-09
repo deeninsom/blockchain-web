@@ -37,7 +37,7 @@ interface HarvestRecord {
 }
 
 const IPFS_GATEWAY_URL = process.env.NEXT_PUBLIC_IPFS_GATEWAY || 'https://ipfs.io/ipfs/';
-const EXPLORER_BASE_URL = process.env.NEXT_PUBLIC_EXPLORER_URL || 'http://192.168.1.73:3000/farmer/record-harvest/tx/';
+const EXPLORER_BASE_URL = `${process.env.NEXT_PUBLIC_URL}farmer/record-harvest/tx/`;
 
 
 /* -------------------------------------------------------------------------- */

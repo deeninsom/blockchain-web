@@ -152,7 +152,7 @@ export async function GET(req: NextRequest) {
   try {
     const token = req.cookies.get('auth_token')?.value;
     if (!token) {
-      return jsonResponse({ success: false, message: "Authentication required." }, { status: 401 });
+      return jsonResponse({ success: false, message: "Authentication required." });
     }
 
     // --- Otorisasi dan Peran ---
@@ -161,7 +161,7 @@ export async function GET(req: NextRequest) {
     const actorUserRole = decoded.role; // 🟢 Ambil Role dari Token
 
     if (!actorUserId) {
-      return jsonResponse({ success: false, message: "Unauthorized or Invalid User." }, { status: 403 });
+      return jsonResponse({ success: false, message: "Unauthorized or Invalid User." });
     }
 
     // 1. Tentukan Kondisi WHERE awal
@@ -245,87 +245,9 @@ export async function GET(req: NextRequest) {
 
     // Penanganan error JWT eksplisit
     if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
-      return jsonResponse({ success: false, message: "Invalid or expired token." }, { status: 401 });
+      return jsonResponse({ success: false, message: "Invalid or expired token." });
     }
 
-    return jsonResponse({ success: false, message: "Failed to fetch data." }, { status: 500 });
+    return jsonResponse({ success: false, message: "Failed to fetch data." });
   }
 }
-
-// export async function GET(req: NextRequest) {
-//   const url = new URL(req.url);
-//   const batchId = url.searchParams.get('batchId');
-//   try {
-//     const token = req.cookies.get('auth_token')?.value;
-//     if (!token) {
-//       return NextResponse.json({ success: false, message: "Authentication required." }, { status: 401 });
-//     }
-//     const decoded = jwt.verify(token, JWT_SECRET) as CustomJwtPayload;
-//     const actorUserId = decoded.id;
-//     if (!actorUserId) {
-//       return NextResponse.json({ success: false, message: "Unauthorized or Invalid User." }, { status: 403 });
-//     }
-
-//     const events = await prisma.productEvent.findMany({
-//       where: {
-//         actorUserId: actorUserId,
-//         eventType: 1,
-//       },
-//       orderBy: { createdAt: "desc" },
-//       select: {
-//         id: true,
-//         batchId: true,
-//         ipfsHash: true,
-//         txHash: true,
-//         createdAt: true,
-//         batch: { // 🟢 PERUBAHAN 2: Join ke Batch untuk mendapatkan productName
-//           select: {
-//             productName: true,
-//             status: true
-//           },
-//         },
-//       },
-//     });
-
-//     const recordsWithIpfsData = await Promise.all(
-//       events.map(async (event) => {
-//         const { batch, ...restOfEvent } = event;
-
-//         const batchProductName = batch?.productName || "N/A";
-//         const batchStatus = batch?.status || "UNKNOWN";
-
-//         if (!restOfEvent.ipfsHash) {
-//           return {
-//             ...restOfEvent,
-//             productName: batchProductName,
-//             status: batchStatus,
-//             location: "N/A",
-//             harvestDate: restOfEvent.createdAt.toISOString(),
-//             quantity: "0",
-//             unit: "N/A",
-//             photoIpfsHash: null,
-//           }
-//         }
-
-//         const ipfsData = await getIpfsJson(restOfEvent.ipfsHash);
-
-//         return {
-//           ...restOfEvent,
-//           productName: ipfsData.productName || batchProductName,
-//           status: batchStatus,
-//           location: ipfsData.location || "N/A",
-//           harvestDate: ipfsData.harvestDate || restOfEvent.createdAt.toISOString(),
-//           quantity: ipfsData.quantity || "0",
-//           unit: ipfsData.unit || "kg",
-//           photoIpfsHash: ipfsData.photoIpfsHash,
-//         };
-//       })
-//     );
-
-//     return jsonResponse({ success: true, records: recordsWithIpfsData });
-
-//   } catch (err: any) {
-//     console.error("GET Harvest Record Error:", err.message);
-//     return NextResponse.json({ success: false, message: "Failed to fetch data." }, { status: 500 });
-//   }
-// }

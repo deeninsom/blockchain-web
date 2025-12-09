@@ -12,42 +12,44 @@ datasource db {
 }
 
 // ========================================================================
-// 1. USER (Aktor Sistem) - Menyimpan Wallet Address untuk Verifikasi
+// 1. USER (Aktor Sistem)
 // ========================================================================
 model User {
   id                  String         @id @default(uuid())
   name                String
   email               String         @unique
   password            String
-  role                String // FARMER, COLLECTOR, DISTRIBUTOR, RETAILER, ADMIN
-  actorAddress        String?        @unique // Wallet Address, Kunci utama interaksi SC
+  role                String
+  actorAddress        String?        @unique
   encryptedPrivateKey String?
   status              UserStatus     @default(ACTIVE)
   batches             Batch[]
   productEvents       ProductEvent[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  certificatesIssued  Certificate[]  @relation(name: "CertIssuedBy")
+  shipmentLogs        ShipmentLog[]
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
 }
 
 // ========================================================================
 // 2. BATCH (Indeks Ringan)
-// Bertindak sebagai indeks utama produk.
 // ========================================================================
 model Batch {
   id      String @id @default(uuid())
-  batchId String @unique // ID Batch unik dari aplikasi mobile/SC
+  batchId String @unique
 
-  // Metadata ringan untuk pencarian/tampilan cepat
-  productName String? // Boleh disimpan untuk filter cepat tanpa IPFS
+  productName String?
 
-  farmerId String?
-  farmer   User?            @relation(fields: [farmerId], references: [id])
-  status   ValidationStatus @default(PENDING)
-  events   ProductEvent[] // Relasi ke riwayat event
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  farmerId         String?
+  farmer           User?            @relation(fields: [farmerId], references: [id])
+  status           ValidationStatus @default(PENDING)
+  rejectionNotes   String?
+  verifiedByUserId String?
+  events           ProductEvent[]
+  certificates     Certificate[]
+  shipmentLogs     ShipmentLog[]
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
   @@index([batchId])
   @@index([farmerId])
@@ -55,36 +57,76 @@ model Batch {
 
 // ========================================================================
 // 3. PRODUCT EVENT (Indeks Verifikasi Blockchain)
-// Menyimpan bukti On-Chain dan pointer ke data lengkap di IPFS.
 // ========================================================================
 model ProductEvent {
   id String @id @default(uuid())
 
-  // POINTER & VERIFIKASI UTAMA
-  batchId   String // ID Batch terkait (cepat untuk join/query)
-  eventType Int // 1=Harvest, 2=Send, dst. (cepat untuk filter)
-  ipfsHash  String // HASH IPFS dari Payload JSON event. <-- DATA LENGKAP ADA DI SINI
+  batchId   String
+  eventType Int
+  ipfsHash  String
 
-  // AUDIT BLOCKCHAIN
-  actorAddress   String // Wallet address yang menandatangani transaksi
+  actorAddress   String
   txHash         String   @unique
   blockNumber    BigInt
   logIndex       Int
-  blockTimestamp DateTime // Waktu event dikonfirmasi di blockchain
+  blockTimestamp DateTime
 
-  // Relasi Off-chain (Optional, untuk menampilkan nama di dashboard)
   actorUserId String?
   actorUser   User?   @relation(fields: [actorUserId], references: [id])
 
-  batchRefId String?
-  batch      Batch?  @relation(fields: [batchRefId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  batchRefId  String?
+  batch       Batch?       @relation(fields: [batchRefId], references: [id])
+  shipmentLog ShipmentLog?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   @@index([batchId])
   @@index([actorAddress])
   @@index([eventType])
+}
+
+// ========================================================================
+// 4. CERTIFICATE (Sertifikat Verifikasi Admin)
+// ========================================================================
+model Certificate {
+  id             String   @id @default(uuid())
+  batchId        String
+  certName       String
+  expiryDate     DateTime
+  certHash       String
+  issuedByUserId String
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  batch    Batch @relation(fields: [batchId], references: [id])
+  issuedBy User  @relation(name: "CertIssuedBy", fields: [issuedByUserId], references: [id])
+
+  @@index([issuedByUserId])
+}
+
+model ShipmentLog {
+  id             String         @id @default(uuid())
+  batchRefId     String // ID Batch dari tabel Batch
+  status         ShipmentStatus // PICKED atau RECEIVED
+  gpsCoordinates String? // Koordinat GPS saat scan (e.g., "Lat,Long")
+  notes          String?
+
+  // Tautan ke Aktor
+  actorUserId String
+  actorUser   User   @relation(fields: [actorUserId], references: [id])
+
+  // Tautan ke Bukti Blockchain
+  productEventId String       @unique // Harus UNIQUE karena 1 Tx = 1 Log
+  productEvent   ProductEvent @relation(fields: [productEventId], references: [id])
+
+  batchRef Batch @relation(fields: [batchRefId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([batchRefId])
+  @@index([actorUserId])
 }
 
 enum UserStatus {
@@ -93,8 +135,14 @@ enum UserStatus {
 }
 
 enum ValidationStatus {
-  PENDING // Menunggu Review Admin
-  REJECTED // Ditolak Admin (Data tidak benar/valid)
-  VERIFIED // Disetujui Admin (Siap untuk dicatat di Blockchain)
-  CONFIRMED // Sudah dicatat di Blockchain (Final State)
+  PENDING
+  REJECTED
+  VERIFIED
+  CONFIRMED
+}
+
+enum ShipmentStatus {
+  PICKED // Diambil/Dimuat (Tx On-Chain)
+  RECEIVED // Diterima/Dibongkar (Tx On-Chain)
+  SHIPPED // Status Transisi Visual (Off-Chain Only)
 }

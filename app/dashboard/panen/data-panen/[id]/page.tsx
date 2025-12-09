@@ -1,14 +1,15 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from "react"
-import { FarmerLayout } from "@/components/farmer/farmer-layout"
+// Asumsi: FarmerLayout digunakan juga untuk Admin
+import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { useNotification } from "@/lib/notification-context"
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
-  Loader2, LinkIcon, ArrowLeft,
+  Loader2, ArrowLeft,
   CheckCircle,
   Trash,
   Clock,
@@ -18,7 +19,7 @@ import {
 import { useParams, useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-// Import komponen Form UI (asumsi sudah ada)
+// Komponen Form UI
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -37,7 +38,7 @@ type RecordStatus = "PENDING" | "REJECTED" | "VERIFIED" | "CONFIRMED";
 interface HarvestRecord {
   id: string
   batchId: string
-  productName: string // 🟡 Tambahkan agar bisa ditampilkan di Card Title
+  productName: string
   location: string
   harvestDate: string
   quantity: string
@@ -53,7 +54,27 @@ interface VerificationFormData {
   certificateName: string;
   expiryDate: Date | undefined;
   file: File | null;
-  notes: string; // Tambahkan field notes untuk admin
+  notes: string;
+}
+
+// 🟢 Tipe Data Hasil Trace (sesuai output GET /api/v1/harvest/record/trace/[batchId])
+interface TraceVerificationResult {
+  isVerified: boolean;
+  batchId: string;
+  eventTimestamp: string;
+  txHash: string | null;
+  certName: string | null;
+  expiryDate: string | null;
+  notes: string | null;
+  certificateFileHash: string | null;
+  verifierAddress: string | null;
+  status: string; // Status Batch
+}
+
+interface VerificationFormProps {
+  recordId: string;
+  currentStatus: RecordStatus;
+  onSuccess: () => void;
 }
 
 
@@ -64,8 +85,9 @@ const EXPLORER_BASE_URL = process.env.NEXT_PUBLIC_EXPLORER_URL || 'http://192.16
 /* -------------------------------------------------------------------------- */
 /* STATUS COMPONENT                            */
 /* -------------------------------------------------------------------------- */
-// (StatusBadge component tetap sama)
-const StatusBadge: React.FC<{ status: RecordStatus }> = ({ status }) => {
+const StatusBadge: React.FC<{ status: RecordStatus | string }> = ({ status }) => {
+  const statusKey = status as keyof typeof config;
+
   const config = {
     PENDING: {
       icon: <Clock className="h-4 w-4 mr-1" />,
@@ -79,13 +101,18 @@ const StatusBadge: React.FC<{ status: RecordStatus }> = ({ status }) => {
     },
     VERIFIED: {
       icon: <CheckCircle className="h-4 w-4 mr-1 " />,
-      text: "Terverifikasi",
+      text: "Terverifikasi (Off-chain)",
       color: "text-indigo-700 bg-indigo-100 dark:bg-indigo-900/50 dark:text-indigo-400",
     },
     CONFIRMED: {
       icon: <CheckCircle className="h-4 w-4 mr-1" />,
       text: "Blockchain Confirmed",
       color: "text-green-700 bg-green-100 dark:bg-green-900/50 dark:text-green-400",
+    },
+    NOT_FOUND: { // Digunakan untuk status batch dari trace API
+      icon: <Clock className="h-4 w-4 mr-1" />,
+      text: "Belum Diverifikasi",
+      color: "text-yellow-700 bg-yellow-100 dark:bg-yellow-900/50 dark:text-yellow-400",
     },
     UNKNOWN: {
       icon: <Loader2 className="h-4 w-4 mr-1" />,
@@ -94,7 +121,6 @@ const StatusBadge: React.FC<{ status: RecordStatus }> = ({ status }) => {
     }
   }
 
-  const statusKey = status as keyof typeof config;
   const currentConfig = config[statusKey] || config.UNKNOWN;
 
   return (
@@ -107,10 +133,10 @@ const StatusBadge: React.FC<{ status: RecordStatus }> = ({ status }) => {
 
 
 /* -------------------------------------------------------------------------- */
-/* KOMPONEN FORM VERIFIKASI                      */
+/* KOMPONEN FORM VERIFIKASI */
 /* -------------------------------------------------------------------------- */
 
-const VerificationForm: React.FC<{ recordId: string, currentStatus: RecordStatus }> = ({ recordId, currentStatus }) => {
+const VerificationForm: React.FC<VerificationFormProps> = ({ recordId, currentStatus, onSuccess }) => {
   const { addNotification } = useNotification();
   const [formData, setFormData] = useState<VerificationFormData>({
     certificateName: '',
@@ -134,6 +160,50 @@ const VerificationForm: React.FC<{ recordId: string, currentStatus: RecordStatus
     }
   };
 
+  // Handler untuk Aksi Tolak (REJECT)
+  const handleReject = async () => {
+    if (!isPending) {
+      addNotification("Aksi Ditolak", "Catatan ini sudah tidak dalam status 'Menunggu Review'.", "warning");
+      return;
+    }
+
+    if (!formData.notes) {
+      addNotification("Validasi", "Catatan Admin wajib diisi untuk penolakan.", "warning");
+      return;
+    }
+
+    if (!window.confirm("Anda yakin ingin MENOLAK catatan panen ini? Status akan diubah menjadi REJECTED.")) return;
+
+    setIsSubmitting(true);
+    try {
+      const rejectPayload = {
+        notes: formData.notes
+      };
+
+      // ASUMSI: Endpoint PATCH /reject
+      const res = await fetch(`/api/v1/harvest/record/reject/${recordId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(rejectPayload),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Gagal melakukan penolakan.');
+      }
+
+      addNotification("Sukses", "Catatan berhasil ditolak. Status diperbarui.", "info");
+      onSuccess(); // Muat ulang data
+    } catch (error: any) {
+      console.error("Rejection Error:", error);
+      addNotification("Error", error.message || "Terjadi kesalahan saat menolak.", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+
+  // Handler untuk Aksi Verifikasi (POST ke backend yang terintegrasi Blockchain)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isPending) {
@@ -148,22 +218,18 @@ const VerificationForm: React.FC<{ recordId: string, currentStatus: RecordStatus
     }
 
     setIsSubmitting(true);
-    // 🟡 Implementasi logika pengiriman data verifikasi (to /api/v1/admin/verify) di sini
     try {
-      // Contoh: Upload file, dapatkan IPFS hash, lalu kirim metadata ke server
-      // Anggap Anda mengirim ini ke API /api/v1/harvest/verify/[id]
-
       const payload = new FormData();
       payload.append('certificateName', formData.certificateName);
+      // Kirim tanggal dalam format ISOString
       payload.append('expiryDate', formData.expiryDate.toISOString());
       payload.append('notes', formData.notes);
       payload.append('certificateFile', formData.file);
 
-      // Anggap Anda mengirim PATCH/POST ke API verifikasi
+      // POST ke API Verifikasi: /api/v1/harvest/record/verify/[id]
       const res = await fetch(`/api/v1/harvest/record/verify/${recordId}`, {
-        method: 'POST', // atau PATCH
+        method: 'POST',
         body: payload,
-        // Catatan: Header Content-Type 'multipart/form-data' TIDAK perlu diset manual
       });
 
       if (!res.ok) {
@@ -171,9 +237,15 @@ const VerificationForm: React.FC<{ recordId: string, currentStatus: RecordStatus
         throw new Error(errorData.message || 'Gagal melakukan verifikasi.');
       }
 
-      addNotification("Sukses", "Verifikasi berhasil disimpan! Status catatan akan diperbarui.", "success");
-      // Opsional: Reload detail record
-      // window.location.reload(); 
+      const successData = await res.json();
+
+      addNotification(
+        "Verifikasi Sukses! 🎉",
+        `Status diperbarui menjadi ${successData.batchStatus}. Transaksi Blockchain: ${successData.txHash.substring(0, 10)}...`,
+        "success"
+      );
+
+      onSuccess(); // Panggil onSuccess untuk memuat ulang detail di komponen induk (refresh status)
 
     } catch (error: any) {
       console.error("Verification Submission Error:", error);
@@ -193,8 +265,7 @@ const VerificationForm: React.FC<{ recordId: string, currentStatus: RecordStatus
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
 
-          {/* Bagian 1: Detail Sertifikat (Hanya diaktifkan jika status PENDING) */}
-          <fieldset disabled={!isPending} className="space-y-4">
+          <fieldset disabled={isSubmitting || !isPending} className="space-y-4">
             <h4 className="font-semibold text-md border-b pb-1">Detail Verifikasi & Sertifikasi</h4>
 
             {/* Nama Sertifikat */}
@@ -245,22 +316,22 @@ const VerificationForm: React.FC<{ recordId: string, currentStatus: RecordStatus
                 type="file"
                 accept=".pdf,.jpg,.jpeg,.png"
                 onChange={handleFileChange}
-                required={!formData.file} // Memastikan required jika belum ada file
+                required={!formData.file}
               />
               {formData.file && (
                 <p className="text-xs text-green-600">File dipilih: {formData.file.name}</p>
               )}
             </div>
 
-            {/* Catatan Admin (Opsional) */}
+            {/* Catatan Admin (Opsional untuk setuju, Wajib untuk tolak) */}
             <div className="space-y-2 pt-2">
-              <Label htmlFor="notes">Catatan Admin (Opsional)</Label>
+              <Label htmlFor="notes">Catatan Admin (Wajib untuk Tolak, Opsional untuk Verifikasi)</Label>
               <Textarea
                 id="notes"
                 name="notes"
                 value={formData.notes}
                 onChange={handleChange}
-                placeholder="Tambahkan catatan verifikasi atau kondisi khusus..."
+                placeholder="Tambahkan catatan verifikasi atau alasan penolakan..."
               />
             </div>
 
@@ -269,15 +340,15 @@ const VerificationForm: React.FC<{ recordId: string, currentStatus: RecordStatus
               <Button
                 type="button"
                 variant="destructive"
-                disabled={isSubmitting}
-                onClick={() => addNotification("Aksi Tolak", "Implementasi Tolak diperlukan.", "info")}
+                disabled={isSubmitting || !isPending}
+                onClick={handleReject}
               >
                 <Trash className="h-4 w-4 mr-2" />
                 Tolak Catatan
               </Button>
 
               {/* Tombol Verifikasi/Setuju */}
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting || !isPending}>
                 {isSubmitting ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
@@ -303,7 +374,7 @@ const VerificationForm: React.FC<{ recordId: string, currentStatus: RecordStatus
 
 
 /* -------------------------------------------------------------------------- */
-/* HALAMAN DETAIL                              */
+/* HALAMAN DETAIL (Perubahan & Penambahan di sini)                            */
 /* -------------------------------------------------------------------------- */
 
 export default function HarvestDetailPage() {
@@ -317,8 +388,12 @@ export default function HarvestDetailPage() {
   const [loading, setLoading] = useState(true)
   const [loadingIpfs, setLoadingIpfs] = useState(false)
 
+  // 🟢 STATE BARU untuk data Verifikasi
+  const [verificationTrace, setVerificationTrace] = useState<TraceVerificationResult | null>(null);
+  const [loadingTrace, setLoadingTrace] = useState(false);
+
+
   const fetchIpfsMetadata = useCallback(async (ipfsHash: string) => {
-    // ... (Logika fetchIpfsMetadata tetap sama)
     setLoadingIpfs(true);
     setIpfsMetadata(null);
     try {
@@ -334,11 +409,38 @@ export default function HarvestDetailPage() {
 
     } catch (err: any) {
       console.error("Fetch IPFS Error:", err);
-      addNotification("IPFS Error", `Gagal memuat metadata IPFS: ${err.message}`, "error");
     } finally {
       setLoadingIpfs(false);
     }
-  }, [addNotification]);
+  }, []);
+
+
+  // 🟢 FUNGSI BARU: Mengambil data verifikasi dari backend trace API
+  const fetchVerificationTrace = useCallback(async (batchId: string) => {
+    setLoadingTrace(true);
+    setVerificationTrace(null);
+    try {
+      // Memanggil endpoint GET /api/v1/harvest/record/trace/[batchId]
+      const res = await fetch(`/api/v1/harvest/record/trace/${batchId}`);
+
+      if (!res.ok) {
+        throw new Error("Gagal memuat data verifikasi.");
+      }
+
+      const traceData = await res.json();
+      if (traceData.success) {
+        setVerificationTrace(traceData.data as TraceVerificationResult);
+      } else {
+        console.error("Trace failed:", traceData.message);
+      }
+
+    } catch (err: any) {
+      console.error("Fetch Trace Error:", err);
+    } finally {
+      setLoadingTrace(false);
+    }
+  }, []);
+
 
   const fetchRecordDetail = useCallback(async (id: string) => {
     if (!id) return;
@@ -353,10 +455,11 @@ export default function HarvestDetailPage() {
 
       const r = await res.json()
 
+      // Format data
       const formatted: HarvestRecord = {
         id: r.id,
         batchId: r.batchId,
-        productName: r.productName || "Produk N/A", // Ambil productName
+        productName: r.productName || "Produk N/A",
         location: r.location,
         harvestDate: new Date(r.harvestDate).toLocaleString("id-ID", {
           day: "2-digit", month: "short", year: "numeric",
@@ -380,13 +483,24 @@ export default function HarvestDetailPage() {
         fetchIpfsMetadata(r.ipfsHash);
       }
 
+      // 🟢 Panggil trace setelah detail record dimuat
+      if (r.batchId) {
+        fetchVerificationTrace(r.batchId);
+      }
+
     } catch (err: any) {
       console.error("Fetch Detail Error:", err);
       addNotification("Error", err.message || "Gagal memuat data detail panen", "error")
     } finally {
       setLoading(false)
     }
-  }, [addNotification, fetchIpfsMetadata])
+  }, [addNotification, fetchIpfsMetadata, fetchVerificationTrace])
+
+
+  // Fungsi untuk memicu pemuatan ulang data (dipanggil dari VerificationForm)
+  const reloadRecord = () => {
+    fetchRecordDetail(recordId);
+  };
 
 
   useEffect(() => {
@@ -394,39 +508,37 @@ export default function HarvestDetailPage() {
   }, [fetchRecordDetail, recordId])
 
   if (loading) {
-    // ... (Loading state)
     return (
-      <FarmerLayout>
+      <DashboardLayout>
         <div className="flex items-center justify-center py-20 text-muted-foreground">
           <Loader2 className="mr-2 h-6 w-6 animate-spin" /> Memuat Detail...
         </div>
-      </FarmerLayout>
+      </DashboardLayout>
     )
   }
 
   if (!record) {
-    // ... (Not Found state)
     return (
-      <FarmerLayout>
+      <DashboardLayout>
         <div className="text-center py-20">
           <p className="text-lg font-medium">Catatan panen tidak ditemukan.</p>
           <Button onClick={() => router.back()} className="mt-4">
             <ArrowLeft className="h-4 w-4 mr-2" /> Kembali ke Riwayat
           </Button>
         </div>
-      </FarmerLayout>
+      </DashboardLayout>
     )
   }
 
   // Komponen utama
   return (
-    <FarmerLayout>
+    <DashboardLayout>
       <Tabs defaultValue="detail" className="space-y-6">
 
         {/* TAB MENU */}
         <TabsList>
           <TabsTrigger value="detail">Detail</TabsTrigger>
-          {/* Asumsi: Tab Aksi hanya muncul untuk Admin atau jika status != REJECTED/CONFIRMED */}
+          {/* Ganti trigger ini sesuai role Admin Anda */}
           <TabsTrigger value="aksi">Verifikasi</TabsTrigger>
         </TabsList>
 
@@ -501,8 +613,75 @@ export default function HarvestDetailPage() {
 
                     <hr className="my-4" />
 
+                    {/* DETAIL VERIFIKASI SERTIFIKAT (TAMPILAN BARU) */}
+                    <h3 className="font-semibold text-lg border-b pb-1 pt-2">
+                      📜 Bukti Verifikasi Admin & Sertifikat
+                    </h3>
+
+                    {loadingTrace ? (
+                      <div className="flex items-center text-sm text-gray-500 pt-2">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memuat data verifikasi...
+                      </div>
+                    ) : verificationTrace?.isVerified ? (
+                      <div className="space-y-4 p-4 border rounded-lg bg-green-50 dark:bg-green-900/10">
+                        <p className="text-sm font-bold text-green-700 flex items-center">
+                          <CheckCircle className="h-5 w-5 mr-2" /> VERIFIKASI RESMI DITEMUKAN (Status Batch: {verificationTrace.status})
+                        </p>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 text-sm">
+                          {/* Nama Sertifikat */}
+                          <p className="font-medium">Nama Sertifikat:</p>
+                          <p className="font-bold text-green-700">{verificationTrace.certName || 'N/A'}</p>
+
+                          {/* Tanggal Kadaluarsa */}
+                          <p className="font-medium">Kadaluarsa:</p>
+                          <p>{verificationTrace.expiryDate ? format(new Date(verificationTrace.expiryDate), "PPP") : 'N/A'}</p>
+
+                          {/* Verifikator */}
+                          <p className="font-medium">Verifikator (Wallet):</p>
+                          <p className="truncate font-mono text-xs">{verificationTrace.verifierAddress || 'N/A'}</p>
+
+                          {/* Hash Transaksi Verifikasi */}
+                          <p className="font-medium">Tx Hash Verifikasi (Blockchain):</p>
+                          <a
+                            href={`${EXPLORER_BASE_URL}${verificationTrace.txHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-500 hover:underline flex items-center gap-1 truncate font-mono text-xs"
+                          >
+                            {verificationTrace.txHash?.substring(0, 10)}...<ExternalLink className="h-3 w-3" />
+                          </a>
+
+                          {/* Tautan Sertifikat File */}
+                          <p className="font-medium">File Sertifikat (IPFS):</p>
+                          <a
+                            href={`${IPFS_GATEWAY_URL}${verificationTrace.certificateFileHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-500 hover:underline flex items-center gap-1 truncate"
+                          >
+                            Lihat Dokumen <ExternalLink className="h-3 w-3" />
+                          </a>
+                        </div>
+
+                        {verificationTrace.notes && (
+                          <div className="mt-4 border-t pt-2">
+                            <p className="font-medium text-sm">Catatan Admin:</p>
+                            <p className="text-sm italic text-gray-600">{verificationTrace.notes}</p>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="p-4 border rounded-lg bg-yellow-50 dark:bg-yellow-900/10 text-sm text-yellow-700">
+                        <p className="font-medium">Catatan verifikasi (Sertifikat) belum tersedia.</p>
+                        <p className="text-xs mt-1">Status saat ini: **{record.status}**.</p>
+                      </div>
+                    )}
+
+
+                    <hr className="my-4" />
+
                     {/* DETAIL METADATA IPFS */}
-                    {/* ... (Metadata IPFS section tetap sama) ... */}
                     <h3 className="font-semibold text-lg border-b pb-1 pt-2">Metadata IPFS (Data Off-Chain)</h3>
                     <div className="grid grid-cols-1 gap-y-3 text-sm">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 text-sm">
@@ -535,7 +714,6 @@ export default function HarvestDetailPage() {
                     <hr className="my-4" />
 
                     {/* PHOTO */}
-                    {/* ... (Photo section tetap sama) ... */}
                     <h3 className="font-semibold text-lg border-b pb-1 pt-2">
                       Foto Panen
                       <a
@@ -565,16 +743,16 @@ export default function HarvestDetailPage() {
           </Card>
         </TabsContent>
 
-        {/* 🟡 TAB AKSI (VERIFIKASI) 🟡 */}
+        {/* TAB AKSI (VERIFIKASI) */}
         <TabsContent value="aksi">
-          {/* Menggunakan komponen form yang baru dibuat */}
           <VerificationForm
             recordId={record.id}
             currentStatus={record.status}
+            onSuccess={reloadRecord} // Memicu pemuatan ulang data setelah sukses
           />
         </TabsContent>
       </Tabs>
 
-    </FarmerLayout >
+    </DashboardLayout >
   )
 }

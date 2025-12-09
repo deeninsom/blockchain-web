@@ -5,7 +5,8 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://192.168.60.12:3000',
   'http://192.168.1.69:3000',
-  'http://192.168.43.5:3000'
+  'http://192.168.43.5:3000',
+  'http://192.168.60.12:3000'
 ];
 
 const corsOptions = {
