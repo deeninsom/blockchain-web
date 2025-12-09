@@ -1,15 +1,31 @@
+// src/lib/ipfs/uploadToIPFS.ts
+
 import axios from "axios";
 import FormData from "form-data";
 import fs from "fs";
 
-export async function uploadToIPFS(filePath: string) {
+export async function uploadToIPFS(
+  data: string,
+  isFilePath: boolean = true,
+  mimeType: string = 'application/octet-stream'
+) {
   try {
     const form = new FormData();
-    form.append("file", fs.createReadStream(filePath));
 
-    const ipfsApi = process.env.IPFS_API_URL || "http://localhost:5001/api/v0";
+    if (isFilePath) {
+      form.append("file", fs.createReadStream(data));
+    } else {
+      form.append("file", data, {
+        contentType: mimeType,
+        filename: `data-${Date.now()}.json`
+      });
+    }
 
-    const response = await axios.post(`${ipfsApi}/add`, form, {
+    const IPFS_UPLOAD_URL = process.env.IPFS_UPLOAD_URL;
+    const IPFS_GATEWAY_URL = process.env.IPFS_GATEWAY_URL;
+
+    console.log(IPFS_UPLOAD_URL)
+    const response = await axios.post(`${IPFS_UPLOAD_URL}/add`, form, {
       headers: {
         ...form.getHeaders(),
       },
@@ -22,7 +38,7 @@ export async function uploadToIPFS(filePath: string) {
     return {
       cid: Hash,
       fileName: Name,
-      gatewayUrl: `http://localhost:8080/ipfs/${Hash}`,
+      gatewayUrl: `${IPFS_GATEWAY_URL}/${Hash}`,
     };
   } catch (error: any) {
     console.error("IPFS upload error:", error.response?.data || error.message);

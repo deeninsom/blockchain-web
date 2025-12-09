@@ -12,47 +12,39 @@ datasource db {
 }
 
 // ========================================================================
-// 1. USER (Aktor Sistem)
-// Petani, Pengepul, Distributor, Retailer, Admin
+// 1. USER (Aktor Sistem) - Menyimpan Wallet Address untuk Verifikasi
 // ========================================================================
 model User {
-  id       String @id @default(uuid())
-  name     String
-  email    String @unique
-  password String
-
-  // "FARMER" | "COLLECTOR" | "DISTRIBUTOR" | "RETAILER" | "ADMIN"
-  role   String
-  status String // Active/Inactive
-
-  // Relasi
-  batches       Batch[] // Batch yang dibuat
-  productEvents ProductEvent[] // Event yang dilakukan user (actor)
+  id                  String         @id @default(uuid())
+  name                String
+  email               String         @unique
+  password            String
+  role                String // FARMER, COLLECTOR, DISTRIBUTOR, RETAILER, ADMIN
+  actorAddress        String?        @unique // Wallet Address, Kunci utama interaksi SC
+  encryptedPrivateKey String?
+  status              UserStatus     @default(ACTIVE)
+  batches             Batch[]
+  productEvents       ProductEvent[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 // ========================================================================
-// 2. BATCH (Hasil panen yang diupload oleh Petani)
-// Satu batch = 1 hasil panen utama
+// 2. BATCH (Indeks Ringan)
+// Bertindak sebagai indeks utama produk.
 // ========================================================================
 model Batch {
-  id          String   @id @default(uuid())
-  batchId     String   @unique // batchID dari mobile app
-  productName String
-  harvestTime DateTime
-  location    String // GPS / alamat panen
+  id      String @id @default(uuid())
+  batchId String @unique // ID Batch unik dari aplikasi mobile/SC
 
-  // IPFS multimedia (foto panen)
-  photoIpfsHash String
+  // Metadata ringan untuk pencarian/tampilan cepat
+  productName String? // Boleh disimpan untuk filter cepat tanpa IPFS
 
-  // Petani pembuat
-  farmer   User   @relation(fields: [farmerId], references: [id])
-  farmerId String
-
-  // Semua event dari batch ini
-  events ProductEvent[]
+  farmerId String?
+  farmer   User?            @relation(fields: [farmerId], references: [id])
+  status   ValidationStatus @default(PENDING)
+  events   ProductEvent[] // Relasi ke riwayat event
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -62,32 +54,30 @@ model Batch {
 }
 
 // ========================================================================
-// 3. PRODUCT EVENT (Riwayat Off-chain hasil subscribe Event Smart Contract)
+// 3. PRODUCT EVENT (Indeks Verifikasi Blockchain)
+// Menyimpan bukti On-Chain dan pointer ke data lengkap di IPFS.
 // ========================================================================
-
 model ProductEvent {
   id String @id @default(uuid())
 
-  // Dari smart contract event
-  batchId        String
-  eventType      Int // 1=Harvest, 2=SendToCollector, 3=Received, dst…
-  eventName      String? // Human readable name
-  ipfsHash       String // IPFS metadata hash (payload JSON)
-  actorAddress   String // Wallet address actor
-  blockTimestamp DateTime
+  // POINTER & VERIFIKASI UTAMA
+  batchId   String // ID Batch terkait (cepat untuk join/query)
+  eventType Int // 1=Harvest, 2=Send, dst. (cepat untuk filter)
+  ipfsHash  String // HASH IPFS dari Payload JSON event. <-- DATA LENGKAP ADA DI SINI
 
-  // Audit Blockchain
-  txHash      String @unique
-  blockNumber BigInt
-  logIndex    Int
+  // AUDIT BLOCKCHAIN
+  actorAddress   String // Wallet address yang menandatangani transaksi
+  txHash         String   @unique
+  blockNumber    BigInt
+  logIndex       Int
+  blockTimestamp DateTime // Waktu event dikonfirmasi di blockchain
 
-  // Relasi actor (off-chain)
-  actorUser   User?   @relation(fields: [actorUserId], references: [id])
+  // Relasi Off-chain (Optional, untuk menampilkan nama di dashboard)
   actorUserId String?
+  actorUser   User?   @relation(fields: [actorUserId], references: [id])
 
-  // Relasi ke batch
-  batch      Batch?  @relation(fields: [batchRefId], references: [id])
   batchRefId String?
+  batch      Batch?  @relation(fields: [batchRefId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -95,4 +85,16 @@ model ProductEvent {
   @@index([batchId])
   @@index([actorAddress])
   @@index([eventType])
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ValidationStatus {
+  PENDING // Menunggu Review Admin
+  REJECTED // Ditolak Admin (Data tidak benar/valid)
+  VERIFIED // Disetujui Admin (Siap untuk dicatat di Blockchain)
+  CONFIRMED // Sudah dicatat di Blockchain (Final State)
 }

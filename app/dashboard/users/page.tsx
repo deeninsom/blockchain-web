@@ -33,6 +33,26 @@ interface NewUserPayload extends Omit<MasterUserData, 'id' | 'status'> {
   password: string;
 }
 
+const roles = [
+  {
+    name: 'Petani',
+    value: 'PETANI'
+  },
+  {
+    name: 'Distributor',
+    value: 'DISTRIBUTOR'
+  },
+  {
+    name: 'Super Admin',
+    value: 'SUPERADMIN'
+  },
+  {
+    name: 'Admin',
+    value: 'ADMIN'
+  },
+] as const;
+
+
 export default function MasterUsersPage() {
   const { addNotification } = useNotification()
 
@@ -98,7 +118,7 @@ export default function MasterUsersPage() {
         throw new Error('Gagal menghapus pengguna')
       }
 
-      mutate('/api/users')
+      mutate('/api/v1/users')
       addNotification("User Deleted", `Pengguna ${name} berhasil dihapus.`, "info")
 
     } catch (err: any) {
@@ -165,7 +185,7 @@ export default function MasterUsersPage() {
 
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90">Add New Master User</Button>
+              <Button className="bg-primary hover:bg-primary/90">Add New</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
@@ -202,8 +222,11 @@ export default function MasterUsersPage() {
                     <SelectValue placeholder="Pilih Peran Pengguna (Role)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Administrator">Administrator</SelectItem>
-                    <SelectItem value="Petani">Petani</SelectItem>
+                    {
+                      roles.map((val) => (
+                        <SelectItem key={val.value} value={val.value}>{val.name}</SelectItem>
+                      ))
+                    }
                   </SelectContent>
                 </Select>
 
@@ -244,14 +267,13 @@ export default function MasterUsersPage() {
                       <TableCell className="text-foreground">{user.email}</TableCell>
                       <TableCell className="text-muted-foreground">{user.role}</TableCell>
                       <TableCell
-                        className={`font-semibold ${user.status === 'Active' ? 'text-green-500' :
+                        className={`font-semibold ${user.status === 'ACTIVE' ? 'text-green-500' :
                           user.status === 'Pending' ? 'text-yellow-500' : 'text-red-500'
                           }`}
                       >
                         {user.status}
                       </TableCell>
                       <TableCell className="flex space-x-2">
-                        {/* Tombol Edit */}
                         <Button
                           variant="ghost"
                           size="icon"
@@ -261,7 +283,6 @@ export default function MasterUsersPage() {
                         >
                           <PencilIcon className="h-4 w-4" />
                         </Button>
-                        {/* Tombol Delete */}
                         <Button
                           variant="ghost"
                           size="icon"
@@ -311,8 +332,11 @@ export default function MasterUsersPage() {
                   <SelectValue placeholder="Pilih Peran Pengguna (Role)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Administrator">Administrator</SelectItem>
-                  <SelectItem value="Petani">Petani</SelectItem>
+                  {
+                    roles.map((val) => (
+                      <SelectItem key={val.value} value={val.value}>{val.name}</SelectItem>
+                    ))
+                  }
                 </SelectContent>
               </Select>
 
@@ -325,9 +349,8 @@ export default function MasterUsersPage() {
                   <SelectValue placeholder="Pilih Status Pengguna" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Pending">Pending</SelectItem>
-                  <SelectItem value="Suspended">Suspended</SelectItem>
+                  <SelectItem value="ACTIVE">Active</SelectItem>
+                  <SelectItem value="INACTIVE">Inactive</SelectItem>
                 </SelectContent>
               </Select>
 

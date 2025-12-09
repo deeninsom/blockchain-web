@@ -18,6 +18,10 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
   useEffect(() => {
     const menuItems = [
       {
+        label: "Panen",
+        paths: ["/dashboard/panen/data-panen"]
+      },
+      {
         label: "Supply Chain",
         paths: ["/dashboard/traceability", "/dashboard/data-comparison", "/dashboard/linking"],
       },
@@ -41,6 +45,13 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
       label: "Dashboard",
       icon: BarChart3,
       href: "/dashboard",
+    },
+    {
+      label: "Panen",
+      icon: BarChart3,
+      submenu: [
+        { label: "Data Panen", href: "/dashboard/panen/data-panen" }
+      ],
     },
     {
       label: "Supply Chain",

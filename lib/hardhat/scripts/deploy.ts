@@ -1,27 +1,27 @@
-// scripts/deploy.ts (Deployment Ethers v6 Native - KOREKSI FINAL)
+// scripts/deploy.ts (Koreksi Final)
 import { ethers, Wallet } from "ethers";
 import * as dotenv from 'dotenv';
 import path from 'path';
 import * as fs from 'fs';
-import { fileURLToPath } from 'url'; // <<< IMPORT BARU
+import { fileURLToPath } from 'url';
 
 // --- Mengganti __dirname di ES Module ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 // ----------------------------------------
 
-// Setup environment variables (Asumsi file .env berada dua level di atas scripts)
-// Path yang dikoreksi: C:\Users\LENOVO\dev\blockchain\blockchain-web\lib\hardhat\scripts\deploy.ts
-// Path Target: C:\Users\LENOVO\dev\blockchain\blockchain-web\lib\hardhat\.env
+// Asumsi file .env berada di root folder hardhat (../)
+// Jika Anda menjalankan ini dari root folder Hardhat, path ini seharusnya benar.
 dotenv.config({
-  path: path.resolve(__dirname, '../.env') // Sesuaikan path .env jika perlu
+  path: path.resolve(__dirname, '../.env')
 });
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY as string;
-const RPC_URL = process.env.NETWORK_RPC_URL as string; // http://127.0.0.1:8545
+// KOREKSI: Menggunakan RPC_URL sesuai dengan file .env Anda
+const RPC_URL = process.env.RPC_URL as string;
 
 // --- Baca Artifact Kontrak Secara Manual ---
-// Path ini mungkin perlu disesuaikan tergantung struktur folder Anda
+// Path ini diasumsikan relatif terhadap folder Hardhat root: ../artifacts/
 const artifactPath = path.resolve(__dirname, '../artifacts/contracts/ProductTraceability.sol/ProductTraceability.json');
 const ProductTraceabilityArtifact = JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
 const CONTRACT_ABI = ProductTraceabilityArtifact.abi;
@@ -30,7 +30,7 @@ const CONTRACT_BYTECODE = ProductTraceabilityArtifact.bytecode;
 
 async function main() {
   if (!PRIVATE_KEY || !RPC_URL) {
-    throw new Error("PRIVATE_KEY atau NETWORK_RPC_URL tidak diatur di .env.");
+    throw new Error("PRIVATE_KEY atau RPC_URL tidak diatur di .env.");
   }
 
   // 1. Inisialisasi Ethers Provider dan Signer (Wallet)
@@ -40,22 +40,33 @@ async function main() {
   // 2. Buat Factory Ethers Native
   const Factory = new ethers.ContractFactory(CONTRACT_ABI, CONTRACT_BYTECODE, signer);
 
-  console.log("Deploying ProductTraceability contract via Ethers native...");
+  console.log("🚀 Deploying ProductTraceability contract via Ethers native...");
 
-  // 3. Deployment
+  // 3. Deployment (Mengirim Transaksi)
   const contract = await Factory.deploy();
 
-  // 4. Tunggu hingga deployment selesai
-  await contract.waitForDeployment();
+  // --- KOREKSI KRITIS DI SINI ---
+  // Ambil objek Transaction Response untuk mendapatkan hash dan menunggu receipt
+  const deploymentTx = contract.deploymentTransaction();
+  if (!deploymentTx) {
+    throw new Error("Could not retrieve deployment transaction response.");
+  }
+
+  // 4. Tunggu hingga deployment selesai dan dapatkan Receipt
+  const receipt = await deploymentTx.wait();
+
+  if (!receipt) {
+    throw new Error("Deployment failed, receipt not found.");
+  }
 
   const contractAddress = await contract.getAddress();
+  const txHash = receipt.hash; // ✅ Hash berhasil diambil dari Receipt
 
   console.log("----------------------------------------------------------------");
   console.log(`✅ ProductTraceability deployed successfully!`);
   console.log(`📝 Contract Address: ${contractAddress}`);
+  console.log(`🔗 Transaction Hash: ${txHash}`);
   console.log("----------------------------------------------------------------");
-  console.log(`PASTIKAN Anda menyalin alamat ini dan menyimpannya di variabel:`);
-  console.log(`SMART_CONTRACT_ADDRESS di file .env Backend/Listener Anda.`);
 }
 
 main().catch((err) => {

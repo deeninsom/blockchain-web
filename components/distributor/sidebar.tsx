@@ -19,8 +19,8 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
     const menuItems = [
       {
         label: "Harvest",
-        paths: ["/farmer/record-harvest", "/farmer/traceability"],
-      },
+        paths: ["/distributor/record-harvest"],
+      }
     ]
 
     for (const menu of menuItems) {
@@ -36,14 +36,13 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
     {
       label: "Dashboard",
       icon: BarChart3,
-      href: "/farmer",
+      href: "/distributor",
     },
     {
       label: "Harvest",
       icon: Wheat,
       submenu: [
-        { label: "Record Harvest", href: "/farmer/record-harvest" },
-        { label: "Traceability", href: "/farmer/traceability" },
+        { label: "Record Harvest", href: "/distributor/record-harvest" }
       ],
     },
   ]

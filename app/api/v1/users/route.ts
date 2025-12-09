@@ -1,49 +1,87 @@
-import { NextResponse } from "next/server"
-import prisma from "@/lib/prisma"
-import { hash } from "bcryptjs"
+import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import { hash } from "bcryptjs";
+import { generateNewWallet } from "@/lib/walletUtils";
+import { encrypt } from "@/lib/encryptionUtils";
 
-const validRoles = ["FARMER", "COLLECTOR", "DISTRIBUTOR", "RETAILER", "ADMIN"] as const
-const validStatuses = ["ACTIVE", "INACTIVE"] as const
+const validRoles = ["PETANI", "KOLEKTOR", "DISTRIBUTOR", "PENGECER", "SUPERADMIN", 'ADMIN'] as const;
+const validStatuses = ["ACTIVE", "INACTIVE"] as const;
 
 export async function GET(req: Request) {
   try {
+    const url = new URL(req.url);
+    const actorAddress = url.searchParams.get('address'); // Ambil parameter 'address' dari URL
+
+    let whereClause = {};
+
+    // Jika parameter 'address' ditemukan di URL
+    if (actorAddress) {
+      whereClause = {
+        // Gunakan actorAddress untuk memfilter
+        actorAddress: {
+          equals: actorAddress, // Cari yang persis sama
+          mode: 'insensitive', // Opsional: jika Anda ingin pencarian tidak peka huruf besar/kecil (tergantung DB)
+        },
+      };
+    }
+
+    // Eksekusi query ke database menggunakan whereClause
     const users = await prisma.user.findMany({
+      where: whereClause,
       select: {
         id: true,
         name: true,
         email: true,
         role: true,
         status: true,
+        actorAddress: true,
         createdAt: true,
       },
       orderBy: { createdAt: "desc" },
-    })
+    });
+
 
     if (!users || users.length === 0) {
-      return NextResponse.json({ error: "Pengguna tidak ditemukan" }, { status: 404 })
+      // Jika mencari berdasarkan address dan tidak ada hasil, kembalikan 404/Kosong
+      if (actorAddress) {
+        return NextResponse.json({ message: "Pengguna tidak ditemukan berdasarkan alamat aktor ini." }, { status: 404 });
+      }
+      return NextResponse.json([]); // Jika tidak ada query, dan tidak ada pengguna sama sekali
     }
 
-    return NextResponse.json(users)
+    // Jika ada query address, dan hanya ingin mengembalikan satu hasil,
+    // kita bisa langsung kembalikan user pertama (atau objek tunggal jika Anda yakin hasilnya unik)
+    if (actorAddress) {
+      return NextResponse.json(users[0]);
+    }
+
+    // Kembalikan semua hasil jika tidak ada query 'address'
+    return NextResponse.json(users);
+
   } catch (err) {
-    console.error(err)
-    return NextResponse.json({ error: "Gagal mengambil data pengguna" }, { status: 500 })
+    console.error("GET Users Error:", err);
+    return NextResponse.json({ error: "Gagal mengambil data pengguna" }, { status: 500 });
   }
 }
 
 export async function POST(req: Request) {
   try {
-    const { name, email, role, status, password } = await req.json()
+    const { name, email, role, status, password } = await req.json();
 
-    // Validasi minimal
     if (!email || !password || !name) {
-      return NextResponse.json({ error: "Name, Email, dan Password wajib diisi" }, { status: 400 })
+      return NextResponse.json({ error: "Name, Email, dan Password wajib diisi" }, { status: 400 });
     }
 
-    // Validasi role & status enum
-    const finalRole = validRoles.includes(role) ? role : "FARMER"
-    const finalStatus = validStatuses.includes(status) ? status : "ACTIVE"
+    const finalRole = validRoles.includes(role) ? role : "PETANI";
+    const finalStatus = validStatuses.includes(status) ? status : "ACTIVE";
 
-    const hashedPassword = await hash(password, 10)
+    const hashedPassword = await hash(password, 10);
+    const { address, privateKey } = generateNewWallet();
+
+    console.log(`\n--- [DEV WARNING] New Wallet Created for ${email} ---`);
+    console.log(`Address: ${address}`);
+    console.log(`Private Key: ${privateKey}\n--------------------------------------`);
+    const encryptedKey = encrypt(privateKey);
 
     const newUser = await prisma.user.create({
       data: {
@@ -52,6 +90,8 @@ export async function POST(req: Request) {
         password: hashedPassword,
         role: finalRole,
         status: finalStatus,
+        actorAddress: address,
+        encryptedPrivateKey: encryptedKey
       },
       select: {
         id: true,
@@ -59,25 +99,29 @@ export async function POST(req: Request) {
         email: true,
         role: true,
         status: true,
+        actorAddress: true,
         createdAt: true,
       },
-    })
+    });
 
-    return NextResponse.json(newUser, { status: 201 })
+    return NextResponse.json(newUser, { status: 201 });
   } catch (err: any) {
-    console.error(err)
-
+    console.error("POST User Error:", err);
     if (err.code === "P2002") {
-      const field = err.meta?.target?.[0]
+      const field = err.meta?.target?.[0];
+      let message = "Email sudah terdaftar, silakan gunakan yang lain";
+      if (field === 'actorAddress') {
+        message = "Terjadi konflik address, coba lagi.";
+      }
       return NextResponse.json(
-        { error: `${field} sudah terdaftar, silakan gunakan yang lain` },
+        { error: message },
         { status: 409 }
-      )
+      );
     }
 
     return NextResponse.json(
       { error: "Server error: Gagal memproses permintaan registrasi" },
       { status: 500 }
-    )
+    );
   }
 }

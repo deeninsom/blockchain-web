@@ -2,7 +2,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from "react"
-import { FarmerLayout } from "@/components/farmer/farmer-layout"
+import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { useNotification } from "@/lib/notification-context"
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle,
@@ -178,63 +178,13 @@ export default function RecordHarvestPage() {
     setUploadedFileName(null)
   }
 
-  const submitHarvest = async () => {
-    if (!formData.productName || !formData.location || !formData.quantity || !formData.unit) {
-      addNotification("Error", "Semua field wajib diisi (Batch, Lokasi, Kuantitas, Unit).", "error")
-      return
-    }
 
-    if (!formData.photo) {
-      addNotification("Error", "Tambahkan satu foto panen.", "error")
-      return
-    }
-
-    // Validasi sederhana kuantitas
-    const quantityFloat = parseFloat(formData.quantity);
-    if (isNaN(quantityFloat) || quantityFloat <= 0) {
-      addNotification("Error", "Kuantitas harus berupa angka positif.", "error");
-      return;
-    }
-
-
-    const fd = new FormData()
-    fd.append("productName", formData.productName)
-    fd.append("location", formData.location)
-    fd.append("harvestDate", formData.harvestDate)
-    fd.append("quantity", formData.quantity)
-    fd.append("unit", formData.unit)
-    fd.append("photo", formData.photo)
-
-    try {
-      setLoading(true)
-
-      const res = await fetch("/api/v1/harvest/record", {
-        method: "POST",
-        body: fd,
-      })
-
-      const result = await res.json()
-
-      if (!res.ok) {
-        throw new Error(result.message || "Gagal mengirim data ke server.")
-      }
-
-      await fetchRecords()
-      resetForm()
-
-      addNotification("Success", "Data panen berhasil dicatat dan dikirim ke Blockchain.", "success")
-    } catch (error: any) {
-      addNotification("Error", error.message || "Terjadi kesalahan saat submit.", "error")
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleRowClick = (recordId: string) => {
-    router.push(`/farmer/record-harvest/${recordId}`)
+    router.push(`/dashboard/panen/data-panen/${recordId}`)
   }
   return (
-    <FarmerLayout>
+    <DashboardLayout>
       <div className="space-y-6">
 
         <div className="flex justify-between items-center">
@@ -245,125 +195,10 @@ export default function RecordHarvestPage() {
             </p>
           </div>
 
-          <Button onClick={() => setFormOpen(true)} className="bg-primary">
-            Tambah
-          </Button>
+
         </div>
 
-        {formOpen && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Catatan Panen Baru</CardTitle>
-              <CardDescription>Masukkan detail panen.</CardDescription>
-            </CardHeader>
 
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <Input
-                  name="productName"
-                  value={formData.productName}
-                  placeholder="Nama Produk (e.g., Beras Pandan Wangi)"
-                  onChange={handleChange}
-                  disabled={loading}
-                />
-                <Input
-                  name="location"
-                  value={formData.location}
-                  placeholder="Lokasi Panen (e.g., Blok A)"
-                  onChange={handleChange}
-                  disabled={loading}
-                />
-                <Input
-                  type="datetime-local"
-                  name="harvestDate"
-                  value={formData.harvestDate}
-                  onChange={handleChange}
-                  disabled={loading}
-                />
-                <div className="flex gap-2">
-                  <Input
-                    name="quantity"
-                    type="number"
-                    placeholder="Kuantitas (cth: 400.5)"
-                    className="flex-1"
-                    value={formData.quantity}
-                    onChange={handleChange}
-                    disabled={loading}
-                  />
-                  <Select
-                    onValueChange={(v) => handleSelect(v, "unit")}
-                    defaultValue={formData.unit}
-                    disabled={loading}
-                  >
-                    <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="kg">kg</SelectItem>
-                      <SelectItem value="ton">ton</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* PHOTO SECTION */}
-              <div className="space-y-2">
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => setIsCameraOpen(true)}
-                    className="bg-primary"
-                    disabled={loading}
-                  >
-                    <Camera className="h-4 w-4 mr-2" /> Ambil Foto
-                  </Button>
-
-                  <label
-                    htmlFor="photoUpload"
-                    className={`cursor-pointer px-4 py-2 text-sm font-medium rounded-md ${loading ? 'bg-secondary/50 text-muted-foreground' : 'bg-secondary hover:bg-secondary/80'}`}
-                  >
-                    Upload dari Galeri
-                  </label>
-
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    id="photoUpload"
-                    disabled={loading}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) handlePhoto(file)
-                      e.target.value = ""
-                    }}
-                  />
-                </div>
-
-                {uploadedFileName && (
-                  <div className="flex items-center gap-2 text-primary">
-                    <CheckCircle className="h-4 w-4" />
-                    <span>**Foto Terpilih**: {uploadedFileName}</span>
-                    <Trash
-                      className="h-4 w-4 cursor-pointer text-red-500 hover:text-red-700"
-                      onClick={handlePhotoClear}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* BUTTONS */}
-              <div className="flex justify-end gap-3">
-                <Button variant="outline" onClick={resetForm} disabled={loading}>
-                  Batal
-                </Button>
-                <Button
-                  disabled={loading}
-                  onClick={submitHarvest}
-                  className="bg-primary text-white"
-                >
-                  {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Kirim"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* RIWAYAT TABLE */}
         <Card>
@@ -438,6 +273,6 @@ export default function RecordHarvestPage() {
       )}
 
 
-    </FarmerLayout>
+    </DashboardLayout>
   )
 }
