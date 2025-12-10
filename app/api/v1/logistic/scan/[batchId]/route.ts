@@ -22,8 +22,10 @@ const HARVEST_EVENT_TYPE = 1;
  * Endpoint GET untuk mengambil detail produk berdasarkan Batch ID (dari hasil scan QR Code).
  * URL: /api/v1/logistic/[batchId]
  */
-export async function GET(req: NextRequest, { params }: { params: { batchId: string } }) {
-  const { batchId } = params;
+export async function GET(req: NextRequest,
+  context: { params: Promise<{ batchId: string }> }
+) {
+  const batchId = (await (context.params)).batchId;
 
   try {
     // --- 1. OTORISASI ---
@@ -33,7 +35,7 @@ export async function GET(req: NextRequest, { params }: { params: { batchId: str
     }
     const decoded = jwt.verify(token, JWT_SECRET) as CustomJwtPayload;
     // Hanya Logistik/Operator yang boleh melakukan scan
-    if (decoded.role !== 'LOGISTIK' && decoded.role !== 'OPERATOR') {
+    if (decoded.role !== 'RETAIL_OPERATOR' && decoded.role !== 'CENTRAL_OPERATOR') {
       return jsonResponse({ success: false, message: "Unauthorized role for this operation." }, 403);
     }
 

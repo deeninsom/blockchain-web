@@ -23,7 +23,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
       },
       {
         label: "Tracking Logisic",
-        paths: ["/operator/pickup", "/operator/tracking-history"],
+        paths: ["/operator/pickup", "/operator/tracking"],
       }
     ]
 
@@ -47,7 +47,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
       icon: Wheat,
       submenu: [
         { label: "Pickup", href: "/operator/pickup" },
-        { label: "Riwayat Perjalanan", href: "/operator/tracking-history" }
+        { label: "Riwayat Perjalanan", href: "/operator/tracking" }
       ],
     },
   ]

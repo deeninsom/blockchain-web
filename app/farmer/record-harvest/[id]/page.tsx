@@ -14,7 +14,7 @@ import {
   Clock,
   ExternalLink
 } from "lucide-react"
-
+import { QRCodeCanvas } from 'qrcode.react';
 import { useParams, useRouter } from "next/navigation"
 
 /* -------------------------------------------------------------------------- */
@@ -213,12 +213,12 @@ export default function HarvestDetailPage() {
 
             {/* QR CODE */}
             <div className="flex flex-col items-center gap-1 border p-2 rounded-md bg-white shadow-sm">
-              <img
-                src={`/api/v1/qr-code/${record.batchId}`}
-                alt={`QR Code Traceability untuk Batch ID ${record.batchId}`}
-                width={100}
-                height={100}
-                className="object-contain"
+
+              <QRCodeCanvas
+                value={record.batchId} // Data yang akan di-encode menjadi QR Code
+                size={100}            // Ukuran dalam piksel
+                level="H"             // Level koreksi error (L, M, Q, H)
+              // Di sini Anda bisa menambahkan props lain seperti bgColor, fgColor, dll.
               />
               <span className="text-xs font-medium text-gray-500 mt-1">QR Trace</span>
             </div>

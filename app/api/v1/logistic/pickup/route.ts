@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     const decoded = jwt.verify(token, JWT_SECRET) as CustomJwtPayload;
     const actorUserId = decoded.id;
 
-    if (!actorUserId || (decoded.role !== 'LOGISTIK' && decoded.role !== 'OPERATOR')) {
+    if (!actorUserId || (decoded.role !== 'RETAIL_OPERATOR' && decoded.role !== 'CENTRAL_OPERATOR')) {
       return jsonResponse({ success: false, message: "Unauthorized role or invalid user." }, 403);
     }
 

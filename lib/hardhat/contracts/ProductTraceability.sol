@@ -47,7 +47,7 @@ contract ProductTraceability {
         require(msg.sender == operator, "Hanya operator yang dapat mencatat event.");
 
         // GUARDRAIL 2: Memastikan eventType adalah salah satu kode yang diizinkan (1, 2, 3, atau 5)
-        require(_eventType == 1 || _eventType == 2 || _eventType == 3 || _eventType == 5, 
+        require(_eventType == 1 || _eventType == 2 || _eventType == 3 || _eventType == 5 || _eventType == 99, 
                 "EventType tidak valid. Harus 1, 2, 3, atau 5.");
 
         // Simpan IPFS Hash terbaru untuk quick lookup

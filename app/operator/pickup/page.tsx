@@ -12,25 +12,24 @@ import { useToast } from "@/components/ui/use-toast"
 
 // --- Import Komponen Kamera Anda (Dianggap berada di folder yang sama atau di components) ---
 import { QRCameraScanner } from "@/components/qr-camera-scanner"
-// --- Tipe Data Disesuaikan (Mengikuti API Backend) ---
 
+// --- Tipe Data Disesuaikan (Mengikuti API Backend) ---
 interface PickupFormData {
     batchId: string;
-    batchRefId: string; // Diperlukan untuk POST API (UUID internal)
+    batchRefId: string;
     farmerAddress: string;
-    quantity: string;  // Quantity sebagai STRING
-    unit: string;      // Unit wajib ada
+    quantity: string;
+    unit: string;
     gpsCoordinates: string;
     notes: string;
 }
 
-// Data hasil get API (sesuai respons dari /api/v1/logistic/[batchId])
 interface ScannedProductData {
     batchId: string;
     batchRefId: string;
     farmerAddress: string;
     farmerName: string;
-    initialQuantity: string; // Quantity tersedia sebagai STRING
+    initialQuantity: string;
     unit: string;
     status: string;
 }
@@ -39,8 +38,8 @@ interface ScannedProductData {
 
 export default function PickupPage() {
     const { toast } = useToast();
-    const [isScanning, setIsScanning] = useState(true); // True = mode scan, False = mode form
-    const [isCameraModalOpen, setIsCameraModalOpen] = useState(false); // Mengontrol dialog kamera
+    const [isScanning, setIsScanning] = useState(true);
+    const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
     const [scannedData, setScannedData] = useState<ScannedProductData | null>(null);
 
     const initialFormData: PickupFormData = {
@@ -49,7 +48,7 @@ export default function PickupPage() {
         farmerAddress: "",
         quantity: "0",
         unit: "kg",
-        gpsCoordinates: "-6.201, 106.812", // Default/Mock GPS
+        gpsCoordinates: "-6.201, 106.812",
         notes: "",
     };
 
@@ -63,7 +62,6 @@ export default function PickupPage() {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { id, value } = e.target;
 
-        // Khusus kuantitas, pastikan formatnya string angka (memungkinkan titik desimal)
         const newValue = id === 'quantity' && value.match(/^[0-9]*\.?[0-9]*$/) ? value : value;
 
         setFormData(prev => ({
@@ -73,19 +71,37 @@ export default function PickupPage() {
     };
 
     /**
-     * @description Mengambil data batch dari API setelah scan. Dipanggil dari QRCameraScanner atau simulasi.
+     * @description Mengambil data batch dari API setelah scan.
      */
     const handleScanResult = async (scannedBatchId: string) => {
+        // PERBAIKAN 1: Pastikan Batch ID tidak kosong
+        if (!scannedBatchId || scannedBatchId.trim() === "") {
+            toast({
+                title: "Gagal Scan Produk",
+                description: "QR Code kosong atau tidak terbaca.",
+                variant: "destructive",
+            });
+            setIsCameraModalOpen(false);
+            return;
+        }
+
         // Abaikan jika Batch ID yang sama baru saja diproses
         if (scannedBatchId === formData.batchId && scannedData !== null) return;
 
         setIsSubmitting(true);
-        setIsCameraModalOpen(false); // Pastikan modal tertutup setelah hasil diterima
+        setIsCameraModalOpen(false);
+
+        // PERBAIKAN 2: URL API harus jelas
+        const API_GET_ENDPOINT = `/api/v1/logistic/scan/${scannedBatchId}`;
 
         try {
-            // >>> PEMANGGILAN API GET NYATA <<<
-            // Ganti ini dengan endpoint API Anda yang sebenarnya
-            const res = await fetch(`/api/v1/logistic/${scannedBatchId}`);
+            toast({
+                title: "Memanggil API...",
+                description: `Mencari data produk di ${API_GET_ENDPOINT}`,
+            });
+
+            // >>> PEMANGGILAN API GET NYATA TELAH DIPERBAIKI <<<
+            const res = await fetch(API_GET_ENDPOINT);
             const data = await res.json();
 
             if (!res.ok || !data.success) {
@@ -158,10 +174,11 @@ export default function PickupPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        // Validasi Kunci
         if (!formData.batchId || !formData.batchRefId || !formData.farmerAddress) {
             toast({
                 title: "Aksi Tidak Valid",
-                description: "Harap pindai (scan) kode produk terlebih dahulu.",
+                description: "Harap pindai (scan) kode produk terlebih dahulu (BatchRefID & FarmerAddress hilang).",
                 variant: "destructive",
             });
             return;
@@ -180,13 +197,13 @@ export default function PickupPage() {
             return;
         }
 
+        // Peringatan Kuantitas
         if (scannedData && parseFloat(scannedData.initialQuantity) > 0 && quantityNum > parseFloat(scannedData.initialQuantity)) {
             toast({
                 title: "⚠️ Peringatan Kuantitas",
                 description: `Kuantitas pickup (${quantityNum} ${formData.unit}) melebihi kuantitas awal batch (${scannedData.initialQuantity} ${scannedData.unit}). Harap verifikasi!`,
                 variant: "destructive",
             });
-            // Tidak menghentikan submission, hanya memberikan peringatan
         }
 
 
@@ -286,7 +303,12 @@ export default function PickupPage() {
                                     onClick={() => {
                                         setScannedData(null);
                                         setIsScanning(false); // Pindah ke mode form
-                                        setFormData(initialFormData);
+                                        setFormData(prev => ({
+                                            ...initialFormData,
+                                            // Tetapkan nilai mock untuk input manual jika diperlukan
+                                            batchRefId: "MOCK-REF-123",
+                                            farmerAddress: "0xMockFarmerAddressForManualInput"
+                                        }));
                                     }}
                                     disabled={isSubmitting}
                                 >
@@ -311,7 +333,7 @@ export default function PickupPage() {
                                     </div>
                                 )}
 
-                                {!scannedData && formData.batchId && (
+                                {!scannedData && (
                                     <div className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-sm">
                                         Anda berada dalam mode **Input Manual**. Harap isi semua detail dengan benar.
                                     </div>
@@ -345,6 +367,7 @@ export default function PickupPage() {
                                         className={scannedData ? "bg-gray-100 dark:bg-gray-700" : ""}
                                     />
                                     {/* Hidden field untuk BatchRefID */}
+                                    {/* Diperlukan untuk POST API, pastikan terisi di mode manual */}
                                     <input type="hidden" id="batchRefId" value={formData.batchRefId} />
                                 </div>
 
@@ -445,7 +468,7 @@ export default function PickupPage() {
             <QRCameraScanner
                 isOpen={isCameraModalOpen}
                 onClose={() => setIsCameraModalOpen(false)}
-                onScan={handleCameraScan} // Mengirim hasil scan kembali ke fungsi handleScanResult
+                onScan={handleCameraScan}
             />
         </OperatorLayout>
     )
