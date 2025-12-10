@@ -24,7 +24,8 @@ const ROLE_PATHS = {
   SUPERADMIN: '/dashboard',
   PETANI: '/farmer',
   DISTRIBUTOR: '/distributor',
-  ADMIN: '/dashboard'
+  ADMIN: '/dashboard',
+  CENTRAL_OPERATOR: '/operator'
 };
 
 export async function proxy(request: NextRequest) {
@@ -102,7 +103,7 @@ export const config = {
   matcher: [
     '/dashboard/:path*',
     '/farmer/:path*',
-    '/distributor/:path*',
+    '/operator/:path*',
     '/explorer/:path*',
     '/api/v1/:path*'
   ],

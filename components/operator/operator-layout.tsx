@@ -7,7 +7,7 @@ import { Sidebar } from "./sidebar"
 import { Header } from "./header"
 import { NotificationCenter } from "./notification-center"
 
-export function DistributorLayout({ children }: { children: React.ReactNode }) {
+export function OperatorLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [showNotifications, setShowNotifications] = useState(false)
 

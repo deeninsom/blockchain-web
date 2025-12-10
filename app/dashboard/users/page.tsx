@@ -6,7 +6,7 @@ import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   Select,
@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useNotification } from "@/lib/notification-context"
-import { PencilIcon, Trash2, Loader2 } from 'lucide-react'
+import { PencilIcon, Trash2, Loader2, Save } from 'lucide-react'
 import useSWR, { mutate } from 'swr'
 import { fetcher } from '@/lib/fetcher'
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
@@ -25,30 +25,39 @@ interface MasterUserData {
   id: string
   name: string
   email: string
-  role: string
-  status: string
+  role: string // FARMER, CENTRAL_OPERATOR, RETAIL_OPERATOR, ADMIN, SUPER_ADMIN
+  status: 'ACTIVE' | 'INACTIVE' | 'PENDING_VERIFICATION'
 }
 
 interface NewUserPayload extends Omit<MasterUserData, 'id' | 'status'> {
   password: string;
 }
 
+interface EditUserPayload extends Omit<MasterUserData, 'id'> {
+  // Properti yang diizinkan untuk di-update
+}
+
+
 const roles = [
   {
-    name: 'Petani',
-    value: 'PETANI'
+    name: 'Petani (Farmer)',
+    value: 'FARMER'
   },
   {
-    name: 'Distributor',
-    value: 'DISTRIBUTOR'
+    name: 'Operator Gudang Pusat',
+    value: 'CENTRAL_OPERATOR'
+  },
+  {
+    name: 'Operator Gudang Ritel',
+    value: 'RETAIL_OPERATOR'
+  },
+  {
+    name: 'Admin Umum',
+    value: 'ADMIN'
   },
   {
     name: 'Super Admin',
-    value: 'SUPERADMIN'
-  },
-  {
-    name: 'Admin',
-    value: 'ADMIN'
+    value: 'SUPER_ADMIN'
   },
 ] as const;
 
@@ -66,12 +75,13 @@ export default function MasterUsersPage() {
     name: "",
     email: "",
     role: "",
-    status: "Active",
+    status: "ACTIVE",
     password: ""
   })
 
   const [editingUser, setEditingUser] = useState<MasterUserData | null>(null)
 
+  // --- Fungsi Create User ---
   const addUser = async () => {
     if (!newUser.name || !newUser.email || !newUser.role || !newUser.password) {
       addNotification("Validasi Error", "Nama, Email, Peran, dan Password wajib diisi.", "error")
@@ -80,12 +90,12 @@ export default function MasterUsersPage() {
 
     setIsSubmitting(true)
     try {
+      const { status, ...payload } = newUser;
+
       const response = await fetch('/api/v1/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...newUser,
-        }),
+        body: JSON.stringify(payload),
       })
 
       if (!response.ok) {
@@ -93,7 +103,7 @@ export default function MasterUsersPage() {
         throw new Error(errorData.error || 'Gagal membuat pengguna')
       }
 
-      setNewUser({ name: "", email: "", role: "", status: "Active", password: "" })
+      setNewUser({ name: "", email: "", role: "", status: "ACTIVE", password: "" })
       setCreateDialogOpen(false)
 
       mutate('/api/v1/users')
@@ -106,6 +116,7 @@ export default function MasterUsersPage() {
     }
   }
 
+  // --- Fungsi Delete User ---
   const deleteUser = async (id: string, name: string) => {
     if (!confirm(`Apakah Anda yakin ingin menghapus pengguna ${name}? Tindakan ini tidak dapat dibatalkan.`)) return
 
@@ -126,11 +137,14 @@ export default function MasterUsersPage() {
     }
   }
 
+  // --- Handler Edit Dialog ---
   const handleEdit = (user: MasterUserData) => {
-    setEditingUser(user)
+    // Pastikan data disalin dengan benar
+    setEditingUser({ ...user })
     setEditDialogOpen(true)
   }
 
+  // --- Fungsi Save Edited User ---
   const saveEditedUser = async () => {
     if (!editingUser) return
 
@@ -138,10 +152,12 @@ export default function MasterUsersPage() {
     try {
       const { id, name, email, role, status } = editingUser;
 
+      const payload: EditUserPayload = { name, email, role, status }
+
       const response = await fetch(`/api/v1/users/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, role, status }),
+        body: JSON.stringify(payload),
       })
 
       if (!response.ok) {
@@ -177,6 +193,7 @@ export default function MasterUsersPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* === HEADER DAN TOMBOL CREATE === */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Master Users</h1>
@@ -242,7 +259,7 @@ export default function MasterUsersPage() {
           </Dialog>
         </div>
 
-        {/* Users Table */}
+        {/* === USERS TABLE === */}
         <Card className="bg-card/50 backdrop-blur border-border">
           <CardHeader>
             <CardTitle>Master User List ({userList.length} total)</CardTitle>
@@ -268,7 +285,7 @@ export default function MasterUsersPage() {
                       <TableCell className="text-muted-foreground">{user.role}</TableCell>
                       <TableCell
                         className={`font-semibold ${user.status === 'ACTIVE' ? 'text-green-500' :
-                          user.status === 'Pending' ? 'text-yellow-500' : 'text-red-500'
+                          user.status === 'PENDING_VERIFICATION' ? 'text-yellow-500' : 'text-red-500'
                           }`}
                       >
                         {user.status}
@@ -302,6 +319,7 @@ export default function MasterUsersPage() {
         </Card>
       </div>
 
+      {/* === EDIT DIALOG === */}
       {editingUser && (
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent>
@@ -322,13 +340,14 @@ export default function MasterUsersPage() {
                 onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
                 disabled={isSubmitting}
               />
-
+              {/* Select Role (PERBAIKAN FOKUS DI SINI) */}
               <Select
-                value={editingUser.role}
-                onValueChange={(value) => setEditingUser({ ...editingUser, role: value })}
+                value={editingUser.role} // Ini memastikan nilai yang benar terikat
+                onValueChange={(value) => setEditingUser(prev => prev ? { ...prev, role: value } : null)}
                 disabled={isSubmitting}
               >
                 <SelectTrigger>
+                  {/* Gunakan SelectValue yang terikat pada value prop di atas */}
                   <SelectValue placeholder="Pilih Peran Pengguna (Role)" />
                 </SelectTrigger>
                 <SelectContent>
@@ -340,28 +359,32 @@ export default function MasterUsersPage() {
                 </SelectContent>
               </Select>
 
+              {/* Select Status (PERBAIKAN FOKUS DI SINI) */}
               <Select
-                value={editingUser.status}
-                onValueChange={(value) => setEditingUser({ ...editingUser, status: value })}
+                value={editingUser.status} // Ini memastikan nilai yang benar terikat
+                onValueChange={(value) => setEditingUser(prev => prev ? { ...prev, status: value as MasterUserData['status'] } : null)}
                 disabled={isSubmitting}
               >
                 <SelectTrigger>
+                  {/* Gunakan SelectValue yang terikat pada value prop di atas */}
                   <SelectValue placeholder="Pilih Status Pengguna" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ACTIVE">Active</SelectItem>
-                  <SelectItem value="INACTIVE">Inactive</SelectItem>
+                  <SelectItem value="ACTIVE">ACTIVE</SelectItem>
+                  <SelectItem value="INACTIVE">INACTIVE</SelectItem>
+                  <SelectItem value="PENDING_VERIFICATION">PENDING_VERIFICATION</SelectItem>
                 </SelectContent>
               </Select>
-
+            </div>
+            <DialogFooter>
               <Button
                 onClick={saveEditedUser}
-                className="w-full bg-primary hover:bg-primary/90"
+                className="bg-primary hover:bg-primary/90"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Save Changes'}
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />} Save Changes
               </Button>
-            </div>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}

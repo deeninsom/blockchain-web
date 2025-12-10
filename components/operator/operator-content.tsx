@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { QrCode, Eye, BarChart3, Upload, TrendingUp, Package } from "lucide-react"
 import { OverviewChart } from "./overview-chart"
 
-export function DistributorContent() {
+export function OperatorContent() {
   return (
     <div className="space-y-8">
       {/* Header */}

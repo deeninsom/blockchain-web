@@ -4,8 +4,17 @@ import { hash } from "bcryptjs";
 import { generateNewWallet } from "@/lib/walletUtils";
 import { encrypt } from "@/lib/encryptionUtils";
 
-const validRoles = ["PETANI", "KOLEKTOR", "DISTRIBUTOR", "PENGECER", "SUPERADMIN", 'ADMIN'] as const;
-const validStatuses = ["ACTIVE", "INACTIVE"] as const;
+// Peran yang disesuaikan agar cocok dengan frontend (MasterUsersPage.tsx)
+const validRoles = [
+  "FARMER",
+  "CENTRAL_OPERATOR",
+  "RETAIL_OPERATOR",
+  "ADMIN",
+  "SUPER_ADMIN"
+] as const;
+
+// Menambahkan PENDING_VERIFICATION sebagai status yang mungkin, sesuai MasterUserData di frontend
+const validStatuses = ["ACTIVE", "INACTIVE", "PENDING_VERIFICATION"] as const;
 
 export async function GET(req: Request) {
   try {
@@ -19,8 +28,8 @@ export async function GET(req: Request) {
       whereClause = {
         // Gunakan actorAddress untuk memfilter
         actorAddress: {
-          equals: actorAddress, // Cari yang persis sama
-          mode: 'insensitive', // Opsional: jika Anda ingin pencarian tidak peka huruf besar/kecil (tergantung DB)
+          equals: actorAddress,
+          mode: 'insensitive',
         },
       };
     }
@@ -49,8 +58,7 @@ export async function GET(req: Request) {
       return NextResponse.json([]); // Jika tidak ada query, dan tidak ada pengguna sama sekali
     }
 
-    // Jika ada query address, dan hanya ingin mengembalikan satu hasil,
-    // kita bisa langsung kembalikan user pertama (atau objek tunggal jika Anda yakin hasilnya unik)
+    // Jika ada query address, dan hanya ingin mengembalikan satu hasil
     if (actorAddress) {
       return NextResponse.json(users[0]);
     }
@@ -72,10 +80,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Name, Email, dan Password wajib diisi" }, { status: 400 });
     }
 
-    const finalRole = validRoles.includes(role) ? role : "PETANI";
-    const finalStatus = validStatuses.includes(status) ? status : "ACTIVE";
+    // Fallback role yang paling umum jika 'role' tidak disertakan atau tidak valid
+    const defaultRole = "FARMER";
+    const finalRole = validRoles.includes(role) ? role : defaultRole;
+
+    // Fallback status default untuk pengguna baru
+    const defaultStatus = "ACTIVE";
+    const finalStatus = validStatuses.includes(status) ? status : defaultStatus;
 
     const hashedPassword = await hash(password, 10);
+
+    // Pastikan generateNewWallet dan encrypt berjalan dengan benar
     const { address, privateKey } = generateNewWallet();
 
     console.log(`\n--- [DEV WARNING] New Wallet Created for ${email} ---`);

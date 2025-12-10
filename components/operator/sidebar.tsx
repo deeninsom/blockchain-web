@@ -18,8 +18,12 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
   useEffect(() => {
     const menuItems = [
       {
-        label: "Harvest",
-        paths: ["/distributor/record-harvest"],
+        label: "Dashboard",
+        paths: ["/operator/record-harvest"],
+      },
+      {
+        label: "Tracking Logisic",
+        paths: ["/operator/pickup", "/operator/tracking-history"],
       }
     ]
 
@@ -36,13 +40,14 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
     {
       label: "Dashboard",
       icon: BarChart3,
-      href: "/distributor",
+      href: "/operator",
     },
     {
-      label: "Harvest",
+      label: "Tracking Logisic",
       icon: Wheat,
       submenu: [
-        { label: "Record Harvest", href: "/distributor/record-harvest" }
+        { label: "Pickup", href: "/operator/pickup" },
+        { label: "Riwayat Perjalanan", href: "/operator/tracking-history" }
       ],
     },
   ]
