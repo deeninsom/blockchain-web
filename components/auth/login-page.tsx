@@ -74,11 +74,11 @@ export function LoginPage({ onSwitchToRegister }: LoginPageProps) {
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center gap-2 mb-4">
             <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">M</span>
+              <span className="text-white font-bold text-lg">B</span>
             </div>
-            <h1 className="text-2xl font-bold text-foreground">Metamask</h1>
+            <h1 className="text-2xl font-bold text-foreground">Blockchain Portal</h1>
           </div>
-          <p className="text-muted-foreground text-sm">Supply Chain Transparency Platform</p>
+          <p className="text-muted-foreground text-sm">Blockchain Transparency Platform</p>
         </div>
 
         {/* Login Card */}
@@ -145,17 +145,6 @@ export function LoginPage({ onSwitchToRegister }: LoginPageProps) {
             </form>
           </CardContent>
         </Card>
-
-        {/* Switch to Register */}
-        <p className="text-center text-sm text-muted-foreground">
-          Don't have an account?{" "}
-          <button
-            onClick={onSwitchToRegister}
-            className="text-primary hover:text-primary/90 font-medium transition-colors"
-          >
-            Create one
-          </button>
-        </p>
       </div>
     </div>
   )

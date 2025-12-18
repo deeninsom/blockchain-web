@@ -2,7 +2,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from "react"
-import { FarmerLayout } from "@/components/farmer/farmer-layout"
+import { AdminLayout } from "@/components/admin/admin-layout"
 import { useNotification } from "@/lib/notification-context"
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle,
@@ -90,7 +90,7 @@ export default function RecordHarvestPage() {
   const [formData, setFormData] = useState({
     productName: "",
     location: "",
-    harvestDate: new Date().toISOString().slice(0, 16),
+    harvestDate: new Date().toISOString().slice(0, 10),
     quantity: "",
     unit: "kg",
     photo: null as File | null,
@@ -100,7 +100,7 @@ export default function RecordHarvestPage() {
     setFormData({
       productName: "",
       location: "",
-      harvestDate: new Date().toISOString().slice(0, 16),
+      harvestDate: new Date().toISOString().slice(0, 10),
       quantity: "",
       unit: "kg",
       photo: null,
@@ -113,7 +113,7 @@ export default function RecordHarvestPage() {
     try {
       setLoading(true)
       // ASUMSI: API endpoint baru yang telah disesuaikan dengan POST di atas
-      const res = await fetch("/api/v1/harvest/record")
+      const res = await fetch("/api/v1/harvest-log")
 
       if (!res.ok) {
         const errorData = await res.json();
@@ -178,77 +178,16 @@ export default function RecordHarvestPage() {
     setUploadedFileName(null)
   }
 
-  const submitHarvest = async () => {
-    if (!formData.productName || !formData.location || !formData.quantity || !formData.unit) {
-      addNotification("Error", "Semua field wajib diisi (Batch, Lokasi, Kuantitas, Unit).", "error")
-      return
-    }
 
-    if (!formData.photo) {
-      addNotification("Error", "Tambahkan satu foto panen.", "error")
-      return
-    }
-
-    // Validasi sederhana kuantitas
-    const quantityFloat = parseFloat(formData.quantity);
-    if (isNaN(quantityFloat) || quantityFloat <= 0) {
-      addNotification("Error", "Kuantitas harus berupa angka positif.", "error");
-      return;
-    }
-
-
-    const fd = new FormData()
-    fd.append("productName", formData.productName)
-    fd.append("location", formData.location)
-    fd.append("harvestDate", formData.harvestDate)
-    fd.append("quantity", formData.quantity)
-    fd.append("unit", formData.unit)
-    fd.append("photo", formData.photo)
-
-    try {
-      setLoading(true)
-
-      const res = await fetch("/api/v1/harvest/record", {
-        method: "POST",
-        body: fd,
-      })
-
-      const result = await res.json()
-
-      if (!res.ok) {
-        throw new Error(result.message || "Gagal mengirim data ke server.")
-      }
-
-      await fetchRecords()
-      resetForm()
-
-      addNotification("Success", "Data panen berhasil dicatat dan dikirim ke Blockchain.", "success")
-    } catch (error: any) {
-      addNotification("Error", error.message || "Terjadi kesalahan saat submit.", "error")
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleRowClick = (recordId: string) => {
-    router.push(`/farmer/record-harvest/${recordId}`)
+    router.push(`/admin/harvest-log/${recordId}`)
   }
   return (
-    <FarmerLayout>
+    <AdminLayout>
       <div className="space-y-6">
 
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">Record Harvest</h1>
-            <p className="text-muted-foreground mt-2">
-              Catat data panen Anda untuk sistem ketertelusuran.
-            </p>
-          </div>
 
-          <Button onClick={() => setFormOpen(true)} className="bg-primary">
-            Tambah
-          </Button>
-        </div>
 
         {formOpen && (
           <Card>
@@ -274,7 +213,7 @@ export default function RecordHarvestPage() {
                   disabled={loading}
                 />
                 <Input
-                  type="datetime-local"
+                  type="**date**"
                   name="harvestDate"
                   value={formData.harvestDate}
                   onChange={handleChange}
@@ -348,19 +287,7 @@ export default function RecordHarvestPage() {
                 )}
               </div>
 
-              {/* BUTTONS */}
-              <div className="flex justify-end gap-3">
-                <Button variant="outline" onClick={resetForm} disabled={loading}>
-                  Batal
-                </Button>
-                <Button
-                  disabled={loading}
-                  onClick={submitHarvest}
-                  className="bg-primary text-white"
-                >
-                  {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Kirim"}
-                </Button>
-              </div>
+
             </CardContent>
           </Card>
         )}
@@ -392,7 +319,7 @@ export default function RecordHarvestPage() {
                       <TableHead>Quantity</TableHead>
                       <TableHead>Tanggal Panen</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Blockchain</TableHead>
+                      <TableHead>Tx</TableHead>
                     </TableRow>
                   </TableHeader>
 
@@ -438,6 +365,6 @@ export default function RecordHarvestPage() {
       )}
 
 
-    </FarmerLayout>
+    </AdminLayout>
   )
 }

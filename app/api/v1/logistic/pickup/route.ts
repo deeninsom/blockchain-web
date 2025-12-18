@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     const decoded = jwt.verify(token, JWT_SECRET) as CustomJwtPayload;
     const actorUserId = decoded.id;
 
-    if (!actorUserId || (decoded.role !== 'RETAIL_OPERATOR' && decoded.role !== 'CENTRAL_OPERATOR')) {
+    if (!actorUserId || (decoded.role !== 'WAREHOUSE_CENTER' && decoded.role !== 'WAREHOUSE_RETAIL')) {
       return jsonResponse({ success: false, message: "Unauthorized role or invalid user." }, 403);
     }
 
@@ -146,10 +146,10 @@ export async function POST(req: NextRequest) {
       });
 
       // c. Update status Batch 
-      await prisma.batch.update({
-        where: { id: batchRefId },
-        data: { status: 'CONFIRMED' }
-      });
+      // await prisma.batch.update({
+      //   where: { id: batchRefId },
+      //   data: { status: 'CONFIRMED' }
+      // });
 
 
       return { productEventId: productEvent.id, txHash: txResult.txHash };

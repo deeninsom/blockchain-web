@@ -1,27 +1,33 @@
-// app/operator/tracking/[batchId]/page.tsx
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams } from 'next/navigation' // Untuk mengambil parameter dari URL
+import { useParams } from 'next/navigation'
 import { OperatorLayout } from "@/components/operator/operator-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Link as LinkIcon, ArrowLeft } from 'lucide-react';
-import NextLink from 'next/link'; // Import Link dari Next.js untuk navigasi
+import { Link as LinkIcon, ArrowLeft, Loader2 } from 'lucide-react'; // Tambahkan Loader2
+import NextLink from 'next/link';
+import { useNotification } from "@/lib/notification-context" // Import useNotification
 
-// --- Tipe Data Disesuaikan dengan Skema Blockchain/Prisma ---
+// --- Tipe Data Disesuaikan dengan Respons API Baru ---
 interface TraceEvent {
   id: string
   txHash: string
   ipfsHash: string
-  blockTimestamp: string
+  blockTimestamp: string // Datetime string ISO 8601
   locationName: string
   description: string
-  eventType: 1 | 2 | 3 | 5
-  actorRole: 'FARMER' | 'CENTRAL_OPERATOR' | 'RETAIL_OPERATOR' | 'QA_ADMIN'
-  gpsCoordinates?: string
-  notes?: string
+  eventType: number // Numerik (1, 2, 3, 5, dll.)
+  actorRole: string // Role diisi dari User.role
+  gpsCoordinates?: string | null
+  notes?: string | null
+}
+
+interface BatchDetail {
+  batchId: string,
+  productName: string,
+  events: TraceEvent[]
 }
 
 // Helper untuk Badge Status
@@ -29,54 +35,16 @@ const getStatusBadge = (eventType: number) => {
   switch (eventType) {
     case 1: // HARVEST
       return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Panen</Badge>;
-    case 2: // CERTIFICATION
+    case 2: // CERTIFICATION / VERIFICATION
       return <Badge variant="default" className="bg-green-100 text-green-800">Verifikasi</Badge>;
     case 3: // PICKED
-      return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">Dimuat</Badge>;
+      return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">Dimuat (PICKED)</Badge>;
     case 5: // RECEIVED
-      return <Badge variant="outline" className="bg-purple-100 text-purple-800 hover:bg-purple-200">Diterima</Badge>;
+      return <Badge variant="outline" className="bg-purple-100 text-purple-800 hover:bg-purple-200">Diterima (RECEIVED)</Badge>;
     default:
-      return <Badge variant="secondary">Proses</Badge>;
+      return <Badge variant="secondary">Proses ({eventType})</Badge>;
   }
 }
-
-// Mock Data (Sama dengan sebelumnya, tapi dipindahkan di luar komponen)
-const mockEvents: TraceEvent[] = [
-  {
-    id: "1",
-    txHash: "0x123abc...def789",
-    ipfsHash: "QmHash1xyz...",
-    blockTimestamp: "2024-01-15T10:30:00Z",
-    locationName: "Gudang Petani (Farm Jakarta)",
-    description: "Pencatatan Panen Pertama",
-    eventType: 1,
-    actorRole: 'FARMER',
-  },
-  {
-    id: "2",
-    txHash: "0x456def...abc012",
-    ipfsHash: "QmHash2jkl...",
-    blockTimestamp: "2024-01-15T14:20:00Z",
-    locationName: "Gudang Petani",
-    description: "Pengiriman (PICKED) menuju Pusat Distribusi",
-    eventType: 3,
-    actorRole: 'FARMER',
-    gpsCoordinates: "-6.201, 106.812",
-    notes: "Kualitas barang sesuai standar B.",
-  },
-  {
-    id: "3",
-    txHash: "0x789ghi...def345",
-    ipfsHash: "QmHash3pqr...",
-    blockTimestamp: "2024-01-16T09:00:00Z",
-    locationName: "Pusat Distribusi Bandung",
-    description: "Barang Diterima (RECEIVED) dan diverifikasi",
-    eventType: 5,
-    actorRole: 'CENTRAL_OPERATOR',
-    gpsCoordinates: "-6.903, 107.619",
-    notes: "Serah terima berhasil, siap untuk sorting.",
-  },
-];
 
 // Fungsi helper untuk memformat tanggal secara konsisten
 const formatConsistentDateTime = (timestamp: string) => {
@@ -100,38 +68,58 @@ const formatConsistentDateTime = (timestamp: string) => {
 };
 
 // --- Komponen Utama Detail ---
-
 export default function TrackingDetailPage() {
 
   const params = useParams();
-  const trackingBatchId = params.batchId as string || "N/A";
+  const internalBatchId = params.id as string;
 
-  const [events, setEvents] = useState<TraceEvent[]>([]);
+  const { addNotification } = useNotification();
+  const [detail, setDetail] = useState<BatchDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Fungsi fetch data sesungguhnya
   useEffect(() => {
+    if (!internalBatchId) {
+      setLoading(false);
+      return;
+    }
+
+    const API_ENDPOINT = `/api/v1/logistic/history/${internalBatchId}`;
+
     const fetchEvents = async () => {
       setLoading(true);
 
-      // SIMULASI FETCH: Dalam aplikasi nyata, panggil API /api/tracking/[batchId] di sini
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      try {
+        const res = await fetch(API_ENDPOINT);
 
-      // Logika sederhana: jika batch ID cocok, tampilkan mock data.
-      if (trackingBatchId === "PN-XYZ-20250110") {
-        setEvents(mockEvents);
-      } else {
-        setEvents([]); // Data kosong jika batch ID lain
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.message || "Gagal mengambil data detail tracking.");
+        }
+
+        const json = await res.json();
+
+        setDetail({
+          batchId: json.batchId || "N/A",
+          productName: json.productName || "Produk Tidak Dikenal",
+          events: json.events || []
+        });
+
+      } catch (error: any) {
+        console.error("Fetch Error:", error);
+        addNotification("Error", error.message || "Terjadi kesalahan saat memuat riwayat batch.", "error");
+        setDetail(null);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
-    if (trackingBatchId && trackingBatchId !== "N/A") {
-      fetchEvents();
-    }
-  }, [trackingBatchId]);
+    fetchEvents();
+  }, [internalBatchId, addNotification]);
 
+  const currentBatchIdDisplay = detail?.batchId || internalBatchId;
+  // Data events sudah diurutkan kronologis di backend. Reverse di frontend untuk Tampilan Terbaru di Atas.
+  const reversedEvents = detail?.events.slice().reverse() || [];
 
   return (
     <OperatorLayout>
@@ -140,7 +128,9 @@ export default function TrackingDetailPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Detail Logistik Trace</h1>
-            <p className="text-muted-foreground mt-1">Lacak perjalanan Batch ID: **{trackingBatchId}**</p>
+            <p className="text-muted-foreground mt-1">
+              Lacak perjalanan Batch ID: **{currentBatchIdDisplay}** ({detail?.productName || '...'})
+            </p>
           </div>
           <NextLink href="/operator/tracking" passHref>
             <Button variant="outline" className="flex items-center gap-2">
@@ -157,18 +147,19 @@ export default function TrackingDetailPage() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="text-center p-8 text-gray-500">Memuat data transaksi...</div>
-            ) : events.length === 0 ? (
+              <div className="text-center p-8 text-gray-500 flex items-center justify-center">
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Memuat data transaksi...
+              </div>
+            ) : reversedEvents.length === 0 ? (
               <div className="text-center p-8 text-gray-500 border border-gray-300 bg-gray-50 rounded-lg">
                 <h3 className="font-semibold mb-2">Tidak Ada Riwayat</h3>
-                <p className="text-sm">Batch ID **{trackingBatchId}** tidak ditemukan atau belum memiliki catatan trace.</p>
+                <p className="text-sm">Batch ID **{currentBatchIdDisplay}** tidak ditemukan atau belum memiliki catatan trace.</p>
               </div>
             ) : (
               <div className="space-y-8">
-                {/* Menggunakan reverse untuk menampilkan yang terbaru di atas */}
-                {events.slice().reverse().map((event, index) => {
+                {reversedEvents.map((event, index) => {
                   // Hitung index asli dalam array awal untuk menentukan apakah ini item terakhir
-                  const originalIndex = events.length - 1 - index;
+                  const originalIndex = reversedEvents.length - 1 - index;
                   return (
                     <div key={event.id} className="flex gap-4">
                       {/* Visual Timeline Bar */}
@@ -195,10 +186,18 @@ export default function TrackingDetailPage() {
 
                         {/* Detail Bukti On-Chain dan IPFS */}
                         <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg space-y-1">
-                          {/* Detail Logistik (Hanya ada jika PICKED/RECEIVED) */}
+                          {/* Detail Logistik (Hanya ada jika GPS/Notes ada) */}
                           {event.gpsCoordinates && (
                             <p className="text-sm text-gray-700 dark:text-gray-300">
-                              **GPS:** {event.gpsCoordinates}
+                              **GPS:** <a
+                                // Link ke Google Maps menggunakan koordinat
+                                href={`https://www.google.com/maps/search/?api=1&query=${event.gpsCoordinates}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline"
+                              >
+                                {event.gpsCoordinates} (Lihat Peta)
+                              </a>
                             </p>
                           )}
                           {event.notes && (
@@ -218,6 +217,7 @@ export default function TrackingDetailPage() {
                             variant="link"
                             size="sm"
                             className="h-4 p-0 text-primary hover:underline"
+                            // Ganti dengan link Block Explorer yang sebenarnya
                             onClick={() => window.open(`https://explorer.yourchain.com/tx/${event.txHash}`, '_blank')}
                           >
                             <LinkIcon className="w-3 h-3 mr-1" /> Lihat Bukti On-Chain

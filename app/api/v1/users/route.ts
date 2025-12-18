@@ -7,14 +7,14 @@ import { encrypt } from "@/lib/encryptionUtils";
 // Peran yang disesuaikan agar cocok dengan frontend (MasterUsersPage.tsx)
 const validRoles = [
   "FARMER",
-  "CENTRAL_OPERATOR",
-  "RETAIL_OPERATOR",
+  "WAREHOUSE_CENTER",
+  "WAREHOUSE_RETAIL",
   "ADMIN",
   "SUPER_ADMIN"
 ] as const;
 
 // Menambahkan PENDING_VERIFICATION sebagai status yang mungkin, sesuai MasterUserData di frontend
-const validStatuses = ["ACTIVE", "INACTIVE", "PENDING_VERIFICATION"] as const;
+const validStatuses = ["ACTIVE", "INACTIVE"] as const;
 
 export async function GET(req: Request) {
   try {

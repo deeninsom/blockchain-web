@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     }
 
     const token = jwt.sign(
-      { id: userRecord.id, email: userRecord.email, role: userRecord.role },
+      { id: userRecord.id, name: userRecord.name, email: userRecord.email, role: userRecord.role },
       JWT_SECRET,
       { expiresIn: "7d" }
     )
@@ -44,6 +44,7 @@ export async function POST(req: Request) {
       email: userRecord.email,
       role: userRecord.role,
     }
+    console.log(userData)
 
     const response = NextResponse.json({
       success: true,
@@ -53,8 +54,8 @@ export async function POST(req: Request) {
 
 
     response.cookies.set('auth_token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      httpOnly: false,
+      secure: true,
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
     });

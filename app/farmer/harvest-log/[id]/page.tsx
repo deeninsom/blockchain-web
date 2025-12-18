@@ -36,8 +36,8 @@ interface HarvestRecord {
   createdAt: string
 }
 
-const IPFS_GATEWAY_URL = process.env.NEXT_PUBLIC_IPFS_GATEWAY || 'https://ipfs.io/ipfs/';
-const EXPLORER_BASE_URL = `${process.env.NEXT_PUBLIC_URL}farmer/record-harvest/tx/`;
+const IPFS_GATEWAY_URL = process.env.NEXT_PUBLIC_IPFS_GATEWAY;
+const EXPLORER_BASE_URL = `${process.env.NEXT_PUBLIC_URL}public-tx/`;
 
 
 /* -------------------------------------------------------------------------- */
@@ -85,10 +85,6 @@ const StatusBadge: React.FC<{ status: RecordStatus }> = ({ status }) => {
 }
 
 
-/* -------------------------------------------------------------------------- */
-/* HALAMAN DETAIL                              */
-/* -------------------------------------------------------------------------- */
-
 export default function HarvestDetailPage() {
   const router = useRouter()
   const params = useParams()
@@ -126,7 +122,7 @@ export default function HarvestDetailPage() {
     if (!id) return;
     try {
       setLoading(true)
-      const res = await fetch(`/api/v1/harvest/record/${id}`)
+      const res = await fetch(`/api/v1/harvest-log/${id}`)
 
       const r = await res.json()
 

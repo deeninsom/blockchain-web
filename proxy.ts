@@ -3,10 +3,6 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 
 const allowedOrigins = [
   'http://localhost:3000',
-  'http://192.168.60.12:3000',
-  'http://192.168.1.69:3000',
-  'http://192.168.43.5:3000',
-  'http://192.168.60.12:3000'
 ];
 
 const corsOptions = {
@@ -18,20 +14,27 @@ const corsOptions = {
 
 const JWT_SECRET = process.env.AUTH_SECRET || "your_super_secret_fallback";
 
-
+const PUBLIC_API_PATHS = [
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/v1/blockchain/tx',
+  '/public-tx'
+];
 
 const ROLE_PATHS = {
-  SUPERADMIN: '/dashboard',
-  PETANI: '/farmer',
+  SUPERADMIN: '/superadmin',
+  FARMER: '/farmer',
   DISTRIBUTOR: '/distributor',
-  ADMIN: '/dashboard',
-  CENTRAL_OPERATOR: '/operator'
+  ADMIN: '/admin',
+  WAREHOUSE_CENTER: '/operator',
+  WAREHOUSE_RETAIL: '/operator'
 };
 
 export async function proxy(request: NextRequest) {
   const origin = request.headers.get('origin') ?? '';
   const isAllowedOrigin = allowedOrigins.includes(origin);
   const loginUrl = new URL('/', request.url);
+  const currentPath = request.nextUrl.pathname;
 
   if (request.method === 'OPTIONS') {
     const headers: Record<string, string> = {
@@ -44,6 +47,17 @@ export async function proxy(request: NextRequest) {
     }
 
     return new NextResponse(null, { status: 204, headers });
+  }
+
+  const isPublicApi = PUBLIC_API_PATHS.some(path => currentPath.startsWith(path));
+
+  if (isPublicApi) {
+    const response = NextResponse.next();
+
+    if (isAllowedOrigin) {
+      response.headers.set('Access-Control-Allow-Origin', origin);
+    }
+    return response;
   }
 
   const token = request.cookies.get('auth_token')?.value;
@@ -75,7 +89,6 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-  const currentPath = request.nextUrl.pathname;
   const targetPath = ROLE_PATHS[userRole as keyof typeof ROLE_PATHS];
 
   if (!currentPath.startsWith('/api/v1')) {
@@ -102,9 +115,9 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     '/dashboard/:path*',
+    '/superadmin/:path*',
     '/farmer/:path*',
     '/operator/:path*',
-    '/explorer/:path*',
     '/api/v1/:path*'
   ],
 };

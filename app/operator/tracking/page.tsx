@@ -86,6 +86,7 @@ export default function TrackingListPage() {
             const rawRecords = json.batches || []
 
             const formatted: TrackingRecord[] = rawRecords.map((r: any): TrackingRecord => {
+                console.log(r)
                 // Simulasi data Kuantitas yang seharusnya diambil dari IPFS Hash (r.dataIpfsHash)
                 const mockQuantity = Math.floor(Math.random() * (500 - 100 + 1) + 100);
                 const mockUnit = "kg";
@@ -94,14 +95,9 @@ export default function TrackingListPage() {
                     id: r.id,
                     batchId: r.batchId,
                     productName: r.productName || 'N/A',
-                    // Data simulasi karena Quantity/Unit ada di IPFS
-                    quantityDisplay: mockQuantity.toLocaleString("id-ID"),
+                    quantityDisplay: r.quantity,
                     unit: mockUnit,
-                    // Lokasi Awal (disimulasikan dari data panen)
-                    location: r.farmerName || 'N/A',
-                    currentStatus: "PICKED", // Dari filter API
-
-                    // Data Tambahan dari API Logistik:
+                    currentStatus: "PICKED",
                     dataIpfsHash: r.dataIpfsHash || 'N/A',
                     pickedBy: r.pickedBy || 'N/A',
                     pickedAt: new Date(r.pickedAt).toLocaleDateString("id-ID"),
@@ -125,7 +121,7 @@ export default function TrackingListPage() {
 
     const handleRowClick = (recordId: string) => {
         // PERBAIKAN 3: Navigasi ke halaman detail *record-shipment*
-        router.push(`/logistic/record-shipment/${recordId}`)
+        router.push(`/operator/tracking/${recordId}`)
     }
 
     return (
@@ -138,7 +134,7 @@ export default function TrackingListPage() {
                             <Truck className="h-7 w-7" /> Batch Siap Dicatat Pengiriman
                         </h1>
                         <p className="text-muted-foreground mt-2">
-                            Daftar batch yang sudah di-**PICKED** (diambil) dan siap untuk dikirim ke gudang/pabrik berikutnya.
+                            Daftar batch
                         </p>
                     </div>
 
@@ -174,9 +170,6 @@ export default function TrackingListPage() {
                                             <TableHead>Batch ID</TableHead>
                                             <TableHead>Produk</TableHead>
                                             <TableHead>Quantity</TableHead>
-                                            <TableHead>Diambil Dari</TableHead>
-                                            <TableHead>Tgl. Pickup</TableHead>
-                                            <TableHead>Status</TableHead>
                                         </TableRow>
                                     </TableHeader>
 
@@ -184,17 +177,12 @@ export default function TrackingListPage() {
                                         {records.map((r) => (
                                             <TableRow
                                                 key={r.id}
-                                                // Navigasi ke halaman form pengiriman
                                                 onClick={() => handleRowClick(r.id)}
                                                 className="cursor-pointer hover:bg-muted/50 transition-colors"
                                             >
                                                 <TableCell className="font-medium">{r.batchId}</TableCell>
                                                 <TableCell>{r.productName}</TableCell>
-                                                {/* Menggunakan data simulasi karena data asli ada di IPFS */}
                                                 <TableCell>{r.quantityDisplay} {r.unit}</TableCell>
-                                                <TableCell>{r.farmerName}</TableCell>
-                                                <TableCell>{r.pickedAt}</TableCell>
-                                                <TableCell><StatusBadge status={r.currentStatus} /></TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>

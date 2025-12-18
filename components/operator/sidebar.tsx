@@ -19,11 +19,11 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
     const menuItems = [
       {
         label: "Dashboard",
-        paths: ["/operator/record-harvest"],
+        paths: ["/operator"],
       },
       {
-        label: "Tracking Logisic",
-        paths: ["/operator/pickup", "/operator/tracking"],
+        label: "Tracking Log",
+        paths: ["/operator/pickup", "/operator/received", "/operator/tracking"],
       }
     ]
 
@@ -43,10 +43,11 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
       href: "/operator",
     },
     {
-      label: "Tracking Logisic",
+      label: "Tracking Log",
       icon: Wheat,
       submenu: [
         { label: "Pickup", href: "/operator/pickup" },
+        { label: "Received", href: "/operator/received" },
         { label: "Riwayat Perjalanan", href: "/operator/tracking" }
       ],
     },

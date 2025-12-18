@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { uploadToIPFS } from "@/lib/ipfs/uploadToIPFS";
 import { signAndSendTransaction } from "@/lib/blockchain/transaction";
 import jwt, { JwtPayload } from 'jsonwebtoken';
-import { jsonResponse } from "@/lib/json";
+// Hapus import { jsonResponse } dari "@/lib/json";
 import { getIpfsJson } from "@/lib/ipfs/getIpfsJson";
 import { generateBatchId } from "@/lib/generateBatchId";
 
@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: "Unauthorized or Invalid User." }, { status: 403 });
     }
 
+    // Penggunaan req.formData() harus dilakukan HANYA sekali sebelum semua response
     const form = await req.formData();
     const productName = form.get("productName")?.toString() ?? "";
     const location = form.get("location")?.toString() ?? "";
@@ -125,12 +126,13 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return jsonResponse({
-      success: false,
+    // PERBAIKAN: Ganti jsonResponse dengan NextResponse.json
+    return NextResponse.json({
+      success: true, // Diubah dari false ke true (success)
       message: "Record submitted successfully.",
       eventId: productEvent.id,
       txHash: txResult.txHash,
-    });
+    }, { status: 200 });
   } catch (err: any) {
     console.error("Harvest Record Error:", err);
     return NextResponse.json({ success: false, message: err.message || "Internal Server Error" }, { status: 500 });
@@ -152,16 +154,18 @@ export async function GET(req: NextRequest) {
   try {
     const token = req.cookies.get('auth_token')?.value;
     if (!token) {
-      return jsonResponse({ success: false, message: "Authentication required." });
+      // PERBAIKAN: Ganti jsonResponse dengan NextResponse.json
+      return NextResponse.json({ success: false, message: "Authentication required." }, { status: 401 });
     }
 
     // --- Otorisasi dan Peran ---
     const decoded = jwt.verify(token, JWT_SECRET) as CustomJwtPayload;
     const actorUserId = decoded.id;
-    const actorUserRole = decoded.role; // 🟢 Ambil Role dari Token
+    const actorUserRole = decoded.role;
 
     if (!actorUserId) {
-      return jsonResponse({ success: false, message: "Unauthorized or Invalid User." });
+      // PERBAIKAN: Ganti jsonResponse dengan NextResponse.json
+      return NextResponse.json({ success: false, message: "Unauthorized or Invalid User." }, { status: 403 });
     }
 
     // 1. Tentukan Kondisi WHERE awal
@@ -174,8 +178,6 @@ export async function GET(req: NextRequest) {
       // Jika Petani, batasi data hanya pada ID mereka
       whereClause.actorUserId = actorUserId;
     }
-    // Jika Role adalah 'ADMIN', kita TIDAK menambahkan filter actorUserId, 
-    // sehingga mereka mendapatkan semua event Harvest.
 
     // 3. Terapkan Filter batchId (Opsional)
     if (batchId) {
@@ -238,16 +240,19 @@ export async function GET(req: NextRequest) {
       })
     );
 
-    return jsonResponse({ success: true, records: recordsWithIpfsData });
+    // PERBAIKAN: Ganti jsonResponse dengan NextResponse.json
+    return NextResponse.json({ success: true, records: recordsWithIpfsData }, { status: 200 });
 
   } catch (err: any) {
     console.error("GET Harvest Record Error:", err.message);
 
     // Penanganan error JWT eksplisit
     if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
-      return jsonResponse({ success: false, message: "Invalid or expired token." });
+      // PERBAIKAN: Ganti jsonResponse dengan NextResponse.json
+      return NextResponse.json({ success: false, message: "Invalid or expired token." }, { status: 401 });
     }
 
-    return jsonResponse({ success: false, message: "Failed to fetch data." });
+    // PERBAIKAN: Ganti jsonResponse dengan NextResponse.json
+    return NextResponse.json({ success: false, message: "Failed to fetch data." }, { status: 500 });
   }
 }

@@ -1,93 +1,68 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, ValidationStatus } from '@prisma/client'; // Import Enum yang valid
+import { getIpfsJson } from "@/lib/ipfs/getIpfsJson";
+import { Prisma } from '@prisma/client';
 
 // Inisialisasi Prisma Client di luar handler untuk re-use
 const prisma = new PrismaClient();
 
 /**
  * @route GET /api/v1/logistic/record-shipment
- * @description Mengambil daftar batch yang statusnya sudah 'PICKED' (Diambil) dan 
- * belum 'RECEIVED' (Diterima), siap untuk dicatat sebagai pengiriman selanjutnya.
+ * @description Mengambil daftar batch yang statusnya saat ini 'PICKED' (Diambil) atau 
+ * 'RECEIVED' (Diterima), menampilkan riwayat event lengkap.
  */
 export async function GET(request: Request) {
-  // Memastikan hanya peran LOGISTIC yang dapat mengakses
-  // (Implementasi autentikasi & otorisasi diabaikan di sini, tetapi penting)
 
   try {
-    // 1. Dapatkan daftar ID Batch yang sudah pernah memiliki log PICKED
-    //    Ini memastikan kita hanya fokus pada batch yang sudah 'diambil'.
-    const pickedBatchIds = await prisma.shipmentLog.findMany({
+    // PERBAIKAN: Menggunakan nilai ENUM dari Prisma Client
+    const logisticStatuses = [
+      ValidationStatus.CONFIRMED
+    ];
+
+    // 1. Cari Batch berdasarkan status logistik (PICKED atau RECEIVED)
+    const batchesWithAllEvents = await prisma.batch.findMany({
       where: {
-        status: 'PICKED'
-      },
-      select: {
-        batchRefId: true,
-      },
-      distinct: ['batchRefId'],
-    });
-
-    const batchIds = pickedBatchIds.map(log => log.batchRefId);
-
-    if (batchIds.length === 0) {
-      return NextResponse.json({
-        success: true,
-        message: "Tidak ada batch yang berstatus PICKED saat ini.",
-        batches: [],
-        total: 0
-      }, { status: 200 });
-    }
-
-    // 2. Cari Batch yang memiliki log PICKED tetapi TIDAK memiliki log RECEIVED
-    //    (Ini menandakan batch sedang dalam transit/siap untuk proses pengiriman selanjutnya)
-
-    const batches = await prisma.batch.findMany({
-      where: {
-        id: {
-          in: batchIds, // Hanya ambil yang sudah pernah di-PICKED
+        // Filter utama: Hanya Batch yang statusnya saat ini adalah logistik
+        status: {
+          in: logisticStatuses, // Menggunakan Enum yang benar
         },
-        shipmentLogs: {
-          none: {
-            // Pastikan tidak ada log dengan status RECEIVED untuk batch ini
-            status: 'RECEIVED'
-          }
-        }
       },
       select: {
         id: true,
         batchId: true,
         productName: true,
-        // Kita juga bisa mengambil data Event Panen awal jika diperlukan
+        status: true,
+
+        // Ambil SEMUA Event, diurutkan secara kronologis
         events: {
-          where: {
-            // ASUMSI: Event Panen adalah eventType tertentu (misal: 1)
-            // Karena skema tidak mendefinisikan eventType, kita ambil data pertama saja
-            eventType: {
-              // Jika Anda punya EventType khusus untuk panen, gunakan itu.
-              // Contoh: in: [100] // ID Event Panen
-            }
-          },
           orderBy: {
-            blockTimestamp: 'asc' // Ambil event terlama (biasanya Harvest/Panen)
+            blockTimestamp: 'desc' // Urutan waktu event dari awal
           },
-          take: 1, // Ambil hanya data panen awal
           select: {
-            ipfsHash: true, // Berisi detail data panen (Lokasi, Quantity, dll)
+            eventType: true,
+            ipfsHash: true,
             blockTimestamp: true,
             actorUser: {
-              select: { name: true }
+              select: { name: true, role: true }
             }
           }
         },
-        // Ambil ShipmentLog terakhir untuk melihat kapan di-PICKED
+
+        // Ambil ShipmentLog terakhir untuk ringkasan logistik
         shipmentLogs: {
           where: {
-            status: 'PICKED'
+            // Catatan: Jika 'status' di ShipmentLog juga Enum, ganti string ini.
+            // Namun, biasanya status di Log berupa String yang mereplikasi status Batch/Shipment
+            status: {
+              in: ['PICKED', 'RECEIVED']
+            }
           },
           orderBy: {
             createdAt: 'desc'
           },
           take: 1,
           select: {
+            status: true,
             createdAt: true,
             actorUser: {
               select: { name: true }
@@ -95,53 +70,81 @@ export async function GET(request: Request) {
           }
         }
       },
+      orderBy: {
+        createdAt: 'desc'
+      }
     });
 
-    // 3. Format Respons
-    const formattedBatches = batches.map(batch => {
-      const harvestEvent = batch.events[0];
-      const lastPickedLog = batch.shipmentLogs[0];
+    if (batchesWithAllEvents.length === 0) {
+      return NextResponse.json({
+        success: true,
+        message: "Tidak ada batch yang memiliki status logistik saat ini (PICKED/RECEIVED).",
+        batches: [],
+        total: 0
+      }, { status: 200 });
+    }
 
-      // NOTE: Dalam aplikasi nyata, Anda mungkin perlu mengambil data 
-      // Quantity dan Unit dari IPFS menggunakan `harvestEvent.ipfsHash`.
+    // 2. Format Respons
+    const formattedBatches = await Promise.all(batchesWithAllEvents.map(async (batch) => {
+      const firstEvent = batch.events[0];
+      const lastLogisticLog = batch.shipmentLogs[0];
+
+      let ipfsData: any = {};
+      if (firstEvent?.ipfsHash) {
+        ipfsData = await getIpfsJson(firstEvent.ipfsHash);
+      }
+
+      const history = batch.events.map(event => ({
+        eventType: event.eventType,
+        actorName: event.actorUser?.name || 'Unknown',
+        actorRole: event.actorUser?.role || 'N/A',
+        timestamp: event.blockTimestamp,
+        ipfsHash: event.ipfsHash,
+      }));
+
 
       return {
         id: batch.id,
-        batchId: batch.batchId,
-        productName: batch.productName,
-        // Simulasi data yang hilang, seharusnya diambil dari IPFS
-        // quantity: "N/A", 
-        // unit: "N/A", 
+        batchId: ipfsData.batchId || batch.batchId,
+        productName: ipfsData.productName || batch.productName,
 
-        // Data Logistik
-        status: "PICKED",
-        pickedBy: lastPickedLog?.actorUser.name || 'Unknown',
-        pickedAt: lastPickedLog?.createdAt,
+        currentStatus: batch.status,
+        lastLogisticStatus: lastLogisticLog?.status || 'N/A',
+        lastLogisticBy: lastLogisticLog?.actorUser.name || 'Unknown',
+        lastLogisticAt: lastLogisticLog?.createdAt,
 
-        // Data Panen Awal
-        farmerName: harvestEvent?.actorUser?.name || 'N/A',
-        harvestDate: harvestEvent?.blockTimestamp,
+        quantity: ipfsData.quantity || 'N/A',
+        unit: ipfsData.unit || 'N/A',
+        farmerName: firstEvent?.actorUser?.name || 'N/A',
+        harvestDate: firstEvent?.blockTimestamp,
+        dataIpfsHash: firstEvent?.ipfsHash,
 
-        // Hash yang dapat digunakan untuk mendapatkan detail data
-        dataIpfsHash: harvestEvent?.ipfsHash,
+        history: history,
       };
-    });
+    }));
 
 
     return NextResponse.json({
       success: true,
-      message: "Daftar batch yang siap dicatat pengiriman berhasil diambil.",
+      message: "Daftar batch dengan status logistik saat ini (PICKED/RECEIVED) dan event lengkap berhasil diambil.",
       batches: formattedBatches,
       total: formattedBatches.length
     }, { status: 200 });
 
   } catch (error) {
-    console.error("Prisma Error:", error);
+    console.error("Error:", error);
+
+    let errorMessage = "Internal Server Error";
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      errorMessage = `Prisma Error (${error.code}): ${error.message}`;
+    } else if (error instanceof Error) {
+      errorMessage = error.message;
+    }
 
     return NextResponse.json({
       success: false,
-      message: "Terjadi kesalahan server saat mengambil data batch.",
-      error: error instanceof Error ? error.message : "Internal Server Error"
+      message: "Terjadi kesalahan server saat mengambil data logistik.",
+      error: errorMessage
     }, { status: 500 });
   }
 }

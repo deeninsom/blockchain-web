@@ -35,7 +35,7 @@ export async function GET(req: NextRequest,
     }
     const decoded = jwt.verify(token, JWT_SECRET) as CustomJwtPayload;
     // Hanya Logistik/Operator yang boleh melakukan scan
-    if (decoded.role !== 'RETAIL_OPERATOR' && decoded.role !== 'CENTRAL_OPERATOR') {
+    if (decoded.role !== 'WAREHOUSE_CENTER' && decoded.role !== 'WAREHOUSE_RETAIL') {
       return jsonResponse({ success: false, message: "Unauthorized role for this operation." }, 403);
     }
 
@@ -85,6 +85,7 @@ export async function GET(req: NextRequest,
       return jsonResponse({ success: false, message: "Kuantitas produk tidak ditemukan dalam data Harvest IPFS." }, 404);
     }
 
+    console.log(batch)
     // --- 5. RESPONSE DATA ---
     return jsonResponse({
       success: true,
