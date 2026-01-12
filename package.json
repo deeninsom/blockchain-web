@@ -11,7 +11,8 @@
     "migrate:dev": " npx prisma migrate dev",
     "prisma:docker-generate": "docker exec nextjs_app pnpm dlx prisma generate",
     "migrate:docker": "docker exec -it nextjs_app pnpm dlx prisma migrate dev",
-    "start:listener": "node runner.ts"
+    "start:listener": "node runner.ts",
+    "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
@@ -48,6 +49,7 @@
     "@vercel/analytics": "1.3.1",
     "autoprefixer": "^10.4.20",
     "axios": "^1.13.2",
+    "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -87,6 +89,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",
+    "@types/bcrypt": "^6.0.0",
     "@types/bcryptjs": "^3.0.0",
     "@types/formidable": "^3.4.6",
     "@types/js-cookie": "^3.0.6",
