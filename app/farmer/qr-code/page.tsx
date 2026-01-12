@@ -89,20 +89,20 @@ export default function QRGeneratorPage() {
               <Loader2 className="h-10 w-10 animate-spin text-primary mb-2" />
               <p>Memproses label...</p>
             </div>
-          ) : records.map((r) => (
+          ) : records.map((r: any) => (
             <Card key={r.id} className="qr-card overflow-hidden border-2 border-slate-200 shadow-sm break-inside-avoid">
               <CardContent className="p-4 flex flex-col items-center justify-center">
                 <div className="bg-white p-2 border rounded-md mb-3">
                   <QRCodeSVG value={`${window.location.origin}/consumen/${r.batchId}`} size={130} level="H" />
                 </div>
                 <div className="text-center w-full space-y-1">
-                  <p className="font-mono text-[10px] font-black bg-slate-100 py-1 rounded tracking-tighter">
+                  <p className="font-mono text-[10px] font-black text-black bg-slate-100 py-1 rounded tracking-tighter">
                     {r.batchId}
                   </p>
                   <p className="text-sm font-bold uppercase truncate">{r.productName}</p>
                   <div className="flex items-center justify-between text-[8px] text-slate-500 mt-2 border-t pt-2 uppercase font-semibold">
                     <span>PT. BOS FRESH</span>
-                    <span>{new Date(r.harvestDate).toLocaleDateString("id-ID")}</span>
+                    <span>{new Date(r.createdAt).toLocaleDateString("id-ID")}</span>
                   </div>
                 </div>
               </CardContent>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BarChart3, PenTool, FileText, Eye, ChevronDown, User2, Settings, Wheat } from "lucide-react"
+import { BarChart3, PenTool, FileText, Eye, ChevronDown, User2, Settings, Wheat, ClipboardList } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Cookies from "js-cookie";
 import { jwtDecode } from 'jwt-decode';
@@ -78,7 +78,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
     },
     {
       label: "Panen",
-      icon: BarChart3,
+      icon: Wheat,
       submenu: [
         { label: "Pencatatan", href: "/admin/harvest-log" },
         { label: "Traceability", href: "/admin/tracking" },
@@ -86,7 +86,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
     },
     {
       label: "Analystic",
-      icon: BarChart3,
+      icon: ClipboardList,
       href: "/admin/analystic",
     },
   ]

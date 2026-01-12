@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BarChart3, PenTool, FileText, Eye, ChevronDown, User2, Settings, Wheat } from "lucide-react"
+import { BarChart3, PenTool, FileText, Eye, ChevronDown, User2, Settings, Wheat, QrCode } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Cookies from "js-cookie";
 import { jwtDecode } from 'jwt-decode';
@@ -86,7 +86,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
     },
     {
       label: "Qr-code",
-      icon: BarChart3,
+      icon: QrCode,
       href: "/farmer/qr-code",
     },
   ]

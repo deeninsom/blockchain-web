@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BarChart3, PenTool, FileText, Eye, ChevronDown, User2, Settings, Wheat } from "lucide-react"
+import { BarChart3, PenTool, FileText, Eye, ChevronDown, User2, Settings, Wheat, Route } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useNotification } from "@/lib/notification-context"
 import Cookies from "js-cookie";
@@ -83,7 +83,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
     },
     {
       label: "Tracking Log",
-      icon: Wheat,
+      icon: Route,
       submenu: [
         { label: "Pickup", href: "/operator/pickup" },
         { label: "Received", href: "/operator/received" },

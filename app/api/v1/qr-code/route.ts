@@ -55,6 +55,7 @@ export async function GET(req: NextRequest) {
         batchId: true,
         productName: true,
         status: true,
+        createdAt: true
       },
       orderBy: {
         createdAt: 'desc',
