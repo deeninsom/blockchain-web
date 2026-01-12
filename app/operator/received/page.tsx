@@ -1,13 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useState } from "react"
 import { OperatorLayout } from "@/components/operator/operator-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Loader2, Truck, MapPin, CheckCircle, QrCode, Camera } from 'lucide-react';
+import { Loader2, Truck, MapPin, CheckCircle, QrCode, Camera, RotateCcw } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast"
 
 // --- Import Komponen Kamera Anda (Dianggap berada di folder yang sama atau di components) ---
@@ -41,6 +41,7 @@ export default function PickupPage() {
     const [isScanning, setIsScanning] = useState(true);
     const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
     const [scannedData, setScannedData] = useState<ScannedProductData | null>(null);
+    const [isGpsLoading, setIsGpsLoading] = useState(false); // State untuk status GPS
 
     const initialFormData: PickupFormData = {
         batchId: "",
@@ -267,6 +268,49 @@ export default function PickupPage() {
         }
     };
 
+    const getGeolocation = useCallback(() => {
+        if (!navigator.geolocation) {
+            setFormData(prev => ({ ...prev, gpsCoordinates: "Geolocation tidak didukung." }));
+            toast({
+                title: "❌ GPS Gagal",
+                description: "Browser Anda tidak mendukung Geolocation API.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setIsGpsLoading(true);
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                const coordsString = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+                setFormData(prev => ({ ...prev, gpsCoordinates: coordsString }));
+                setIsGpsLoading(false);
+                toast({
+                    title: "✅ GPS Berhasil",
+                    description: `Lokasi terdeteksi: ${coordsString}`,
+                });
+            },
+            (error) => {
+                let errorMessage = "Gagal mengambil lokasi GPS.";
+                if (error.code === error.PERMISSION_DENIED) {
+                    errorMessage = "Izin lokasi ditolak oleh pengguna. Harap berikan izin di pengaturan browser.";
+                } else if (error.code === error.POSITION_UNAVAILABLE) {
+                    errorMessage = "Informasi lokasi tidak tersedia (Coba di luar ruangan).";
+                }
+
+                setFormData(prev => ({ ...prev, gpsCoordinates: "Lokasi tidak tersedia/ditolak." }));
+                setIsGpsLoading(false);
+                toast({
+                    title: "⚠️ GPS Error",
+                    description: errorMessage,
+                    variant: "destructive",
+                });
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    }, [toast]);
 
     return (
         <OperatorLayout>
@@ -285,107 +329,71 @@ export default function PickupPage() {
                 {/* AREA SCANNER / FORM */}
                 <Card className="max-w-xl mx-auto">
                     <CardHeader>
-                        <CardTitle>Data Penerimaan Barang (PICKED)</CardTitle>
+                        <CardTitle>Data Penerimaan Barang (RECEIVED)</CardTitle>
                         <p className="text-sm text-muted-foreground">Langkah 1: Pindai (Scan) Produk. Langkah 2: Verifikasi detail kuantitas.</p>
                     </CardHeader>
                     <CardContent>
-                        {/* MODE SCANNING (Ketika isScanning=true) */}
-                        {isScanning ? (
+                        {/* MODE SCANNING (Ketika scannedData=null) */}
+                        {!scannedData ? (
                             <div className="space-y-4">
-
-                                {/* 💡 TOMBOL UNTUK MEMBUKA MODAL KAMERA */}
+                                {/* TOMBOL UNTUK MEMBUKA MODAL KAMERA */}
                                 <Button
                                     onClick={() => setIsCameraModalOpen(true)}
                                     className="w-full"
                                     disabled={isSubmitting}
                                 >
-                                    <Camera className="mr-2 h-4 w-4" /> Buka Kamera untuk Scan
+                                    <Camera className="mr-2 h-4 w-4" /> Buka Kamera untuk Scan QR Code
                                 </Button>
 
-                                {/* Tombol Simulasikan Scan */}
-                                <Button
-                                    onClick={simulateScan}
-                                    className="w-full"
-                                    disabled={isSubmitting}
-                                    variant="secondary"
-                                >
-                                    <QrCode className="mr-2 h-4 w-4" /> Simulasikan Scan ({MOCK_SCAN_BATCH_ID})
-                                </Button>
+                                {/* TIDAK ADA OPSI INPUT MANUAL */}
 
-                                {/* Tombol Input Manual */}
-                                <Button
-                                    variant="outline"
-                                    className="w-full"
-                                    onClick={() => {
-                                        setScannedData(null);
-                                        setIsScanning(false); // Pindah ke mode form
-                                        setFormData(prev => ({
-                                            ...initialFormData,
-                                            // Tetapkan nilai mock untuk input manual jika diperlukan
-                                            batchRefId: "MOCK-REF-123",
-                                            farmerAddress: "0xMockFarmerAddressForManualInput"
-                                        }));
-                                    }}
-                                    disabled={isSubmitting}
-                                >
-                                    Input Manual Batch ID
-                                </Button>
                             </div>
 
                         ) : (
-                            // MODE FORM INPUT (Setelah Scan atau Manual Input)
+                            // MODE FORM INPUT (Setelah Scan Berhasil)
                             <form onSubmit={handleSubmit} className="space-y-6">
                                 {/* Status Hasil Scan */}
-                                {scannedData && (
-                                    <div className="p-3 border rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 text-sm flex flex-col gap-1">
-                                        <div className="flex items-center gap-2 font-semibold">
-                                            <CheckCircle className="w-4 h-4" /> Data Produk Ditemukan
-                                        </div>
-                                        <p className="ml-6">
-                                            **Batch ID:** {scannedData.batchId} <br />
-                                            **Petani:** {scannedData.farmerName} <br />
-                                            **Kuantitas Awal Tersedia:** {scannedData.initialQuantity} {scannedData.unit}
-                                        </p>
+                                <div className="p-3 border rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 text-sm flex flex-col gap-1">
+                                    <div className="flex items-center gap-2 font-semibold">
+                                        <CheckCircle className="w-4 h-4" /> Data Produk Ditemukan
                                     </div>
-                                )}
+                                    <p className="ml-6">
+                                        **Batch ID:** {scannedData.batchId} <br />
+                                        **Petani:** {scannedData.farmerName} <br />
+                                        **Kuantitas Awal Tersedia:** {scannedData.initialQuantity} {scannedData.unit}
+                                    </p>
+                                </div>
 
-                                {!scannedData && (
-                                    <div className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-sm">
-                                        Anda berada dalam mode **Input Manual**. Harap isi semua detail dengan benar.
-                                    </div>
-                                )}
 
-
-                                {/* Batch ID */}
+                                {/* Batch ID (Disable karena sudah diisi dari scan) */}
                                 <div className="space-y-2">
                                     <Label htmlFor="batchId">Batch ID Produk (Panen)</Label>
                                     <Input
                                         id="batchId"
-                                        placeholder="Masukkan Batch ID"
+                                        placeholder="Batch ID produk..."
                                         value={formData.batchId}
                                         onChange={handleChange}
                                         required
-                                        disabled={isSubmitting || scannedData !== null}
-                                        className={scannedData ? "bg-gray-100 dark:bg-gray-700" : ""}
+                                        disabled={true} // Selalu disabled setelah scan
+                                        className="bg-gray-100 dark:bg-gray-700"
                                     />
                                 </div>
 
-                                {/* Farmer Address (Disable jika sudah terisi dari scan) */}
+                                {/* Farmer Address (Disable karena sudah diisi dari scan) */}
                                 <div className="space-y-2">
                                     <Label htmlFor="farmerAddress">Alamat Aktor Petani (FARMER Address)</Label>
                                     <Input
                                         id="farmerAddress"
-                                        placeholder="Alamat Wallet Petani"
+                                        placeholder="Alamat Wallet Petani..."
                                         value={formData.farmerAddress}
                                         onChange={handleChange}
                                         required
-                                        disabled={isSubmitting || scannedData !== null}
-                                        className={scannedData ? "bg-gray-100 dark:bg-gray-700" : ""}
+                                        disabled={true} // Selalu disabled setelah scan
+                                        className="bg-gray-100 dark:bg-gray-700"
                                     />
-                                    {/* Hidden field untuk BatchRefID */}
-                                    {/* Diperlukan untuk POST API, pastikan terisi di mode manual */}
-                                    <input type="hidden" id="batchRefId" value={formData.batchRefId} />
                                 </div>
+                                {/* Hidden input untuk Batch Ref ID yang didapat dari scan */}
+                                <input type="hidden" id="batchRefId" value={formData.batchRefId} />
 
                                 {/* Quantity & Unit */}
                                 <div className="flex space-x-4">
@@ -400,11 +408,9 @@ export default function PickupPage() {
                                             required
                                             disabled={isSubmitting}
                                         />
-                                        {scannedData && (
-                                            <p className="text-xs text-orange-600 dark:text-orange-400">
-                                                Tersedia: {scannedData.initialQuantity} {scannedData.unit}. Ubah jika kuantitas pengambilan berbeda.
-                                            </p>
-                                        )}
+                                        <p className="text-xs text-orange-600 dark:text-orange-400">
+                                            Tersedia: {scannedData.initialQuantity} {scannedData.unit}. Ubah jika kuantitas pengambilan berbeda dari nilai yang disarankan.
+                                        </p>
                                     </div>
                                     <div className="space-y-2 w-20">
                                         <Label htmlFor="unit">Unit</Label>
@@ -423,16 +429,30 @@ export default function PickupPage() {
                                 {/* GPS Location (Bukti Lokasi) */}
                                 <div className="space-y-2">
                                     <Label htmlFor="gpsCoordinates" className="flex items-center gap-1">
-                                        <MapPin className="w-4 h-4 text-muted-foreground" />
+                                        {isGpsLoading ? (
+                                            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                                        ) : (
+                                            <MapPin className="w-4 h-4 text-muted-foreground" />
+                                        )}
                                         Koordinat GPS Pickup
                                     </Label>
                                     <Input
                                         id="gpsCoordinates"
-                                        placeholder="-6.175, 106.827 (Otomatis dari GPS perangkat)"
+                                        placeholder="Latitude, Longitude"
                                         value={formData.gpsCoordinates}
                                         onChange={handleChange}
-                                        disabled={isSubmitting}
+                                        disabled={isSubmitting || isGpsLoading}
+                                        className={isGpsLoading ? "text-primary italic" : (formData.gpsCoordinates.includes("tidak tersedia") ? "border-red-500" : "")}
                                     />
+                                    <Button
+                                        type="button"
+                                        variant="link"
+                                        onClick={getGeolocation}
+                                        className="h-auto p-0 text-xs text-blue-600 dark:text-blue-400"
+                                        disabled={isGpsLoading || isSubmitting}
+                                    >
+                                        {isGpsLoading ? "Mencari Lokasi..." : "Ulangi Pengambilan Lokasi"}
+                                    </Button>
                                 </div>
 
                                 {/* Notes */}
@@ -450,7 +470,8 @@ export default function PickupPage() {
                                 <Button
                                     type="submit"
                                     className="w-full"
-                                    disabled={isSubmitting || !formData.batchId || !formData.batchRefId}
+                                    // Validasi diubah: Hanya perlu cek formData.batchId karena formData diisi dari scan
+                                    disabled={isSubmitting || !formData.batchId || isGpsLoading || formData.gpsCoordinates.includes("tidak tersedia")}
                                 >
                                     {isSubmitting ? (
                                         <>
@@ -470,8 +491,9 @@ export default function PickupPage() {
                                     onClick={resetToScanMode}
                                     type="button"
                                     className="w-full text-sm text-muted-foreground"
+                                    disabled={isSubmitting}
                                 >
-                                    Batalkan & Scan Produk Lain
+                                    <RotateCcw className="mr-2 h-4 w-4" /> Reset & Kembali ke Mode Scan
                                 </Button>
 
                             </form>

@@ -57,7 +57,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
     const menuItems = [
       {
         label: "Panen",
-        paths: ["/admin/harvest-log"],
+        paths: ["/admin/harvest-log", "/admin/tracking"],
       },
     ]
 

@@ -5,15 +5,54 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { BarChart3, PenTool, FileText, Eye, ChevronDown, User2, Settings, Wheat } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useNotification } from "@/lib/notification-context"
+import Cookies from "js-cookie";
+import { jwtDecode } from 'jwt-decode';
 
 interface SidebarProps {
   isOpen: boolean
   onToggle: () => void
 }
 
+interface AuthTokenPayload {
+  name: string;
+  email: string;
+  role: string;
+}
+
 export function Sidebar({ isOpen, onToggle }: SidebarProps) {
   const pathname = usePathname()
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null)
+
+  const [userName, setUserName] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
+  const { addNotification } = useNotification()
+
+  useEffect(() => {
+    const token = Cookies.get('auth_token');
+
+    if (token) {
+      try {
+        const decoded = jwtDecode<AuthTokenPayload>(token);
+        if (decoded && decoded.name) {
+          setUserName(decoded.name);
+          setRole(decoded.role)
+        } else {
+          addNotification("Error", "Token decoded but 'name' field is missing or invalid.", "error")
+          setUserName('-');
+          setRole("-")
+        }
+      } catch (error) {
+        console.error("Error decoding token:", error);
+        setUserName('-');
+        setRole("-")
+      }
+    } else {
+      setUserName('-');
+      setRole("-")
+    }
+  }, []);
+
 
   useEffect(() => {
     const menuItems = [
@@ -68,11 +107,11 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
         {/* Sidebar Header */}
         <div className="p-6 border-b border-sidebar-border flex items-center gap-3">
           <div className="w-10 h-10 bg-sidebar-primary rounded-lg flex items-center justify-center">
-            <span className="text-sidebar-primary-foreground font-bold">M</span>
+            <span className="text-sidebar-primary-foreground font-bold">{userName?.charAt(0).toUpperCase()}</span>
           </div>
           <div>
-            <h2 className="font-bold text-sidebar-foreground">Metamask</h2>
-            <p className="text-xs text-muted-foreground">Supply Chain</p>
+            <h2 className="font-bold text-sidebar-foreground">{userName}</h2>
+            <p className="text-xs text-muted-foreground">{role}</p>
           </div>
         </div>
 
