@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     const actorRole = decoded.role;
 
     // Aktor yang diizinkan untuk menerima (RETAIL, CENTRAL, atau WAREHOUSE)
-    if (!actorUserId || (actorRole !== 'RETAIL_OPERATOR' && actorRole !== 'CENTRAL_OPERATOR' && actorRole !== 'WAREHOUSE')) {
+    if (!actorUserId || (actorRole !== 'WAREHOUSE_CENTER' && actorRole !== 'WAREHOUSE_RETAIL' && actorRole !== 'WAREHOUSE')) {
       return jsonResponse({ success: false, message: "Unauthorized role for receiving goods." }, 403);
     }
 
