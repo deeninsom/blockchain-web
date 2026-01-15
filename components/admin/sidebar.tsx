@@ -59,6 +59,10 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
         label: "Panen",
         paths: ["/admin/harvest-log", "/admin/tracking"],
       },
+      {
+        label: "Analisis",
+        paths: ["/admin/analystic"],
+      },
     ]
 
     for (const menu of menuItems) {
@@ -81,11 +85,11 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
       icon: Wheat,
       submenu: [
         { label: "Pencatatan", href: "/admin/harvest-log" },
-        { label: "Traceability", href: "/admin/tracking" },
+        { label: "Riwayat Perjalan", href: "/admin/tracking" },
       ],
     },
     {
-      label: "Analystic",
+      label: "Analisis",
       icon: ClipboardList,
       href: "/admin/analystic",
     },

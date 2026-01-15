@@ -61,7 +61,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
         paths: ["/operator"],
       },
       {
-        label: "Tracking Log",
+        label: "Log Aktivitas",
         paths: ["/operator/pickup", "/operator/received", "/operator/tracking"],
       }
     ]
@@ -82,11 +82,11 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
       href: "/operator",
     },
     {
-      label: "Tracking Log",
+      label: "Log Aktivitas",
       icon: Route,
       submenu: [
-        { label: "Pickup", href: "/operator/pickup" },
-        { label: "Received", href: "/operator/received" },
+        { label: "Pengambilan", href: "/operator/pickup" },
+        { label: "Penerimaan", href: "/operator/received" },
         { label: "Riwayat Perjalanan", href: "/operator/tracking" }
       ],
     },

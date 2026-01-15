@@ -76,30 +76,30 @@ export function LoginPage({ onSwitchToRegister }: LoginPageProps) {
             <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-lg">B</span>
             </div>
-            <h1 className="text-2xl font-bold text-foreground">Blockchain Portal</h1>
+            <h1 className="text-2xl font-bold text-foreground">Portal Blockchain</h1>
           </div>
-          <p className="text-muted-foreground text-sm">Blockchain Transparency Platform</p>
+          <p className="text-muted-foreground text-sm">Platform Transparansi Blockchain</p>
         </div>
 
         {/* Login Card */}
         <Card className="border-border bg-card/50 backdrop-blur">
           <CardHeader className="space-y-2">
-            <CardTitle className="text-foreground">Welcome Back</CardTitle>
-            <CardDescription className="text-muted-foreground">Sign in to your account to continue</CardDescription>
+            <CardTitle className="text-foreground">Selamat Datang Kembali</CardTitle>
+            <CardDescription className="text-muted-foreground">Masuk ke akun Anda untuk melanjutkan</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Email */}
               <div className="space-y-2">
                 <label htmlFor="email" className="text-sm font-medium text-foreground">
-                  Email Address
+                  Alamat Email
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="email"
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder="nama@contoh.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 bg-input border-border text-foreground placeholder:text-muted-foreground"
@@ -111,7 +111,7 @@ export function LoginPage({ onSwitchToRegister }: LoginPageProps) {
               {/* Password */}
               <div className="space-y-2">
                 <label htmlFor="password" className="text-sm font-medium text-foreground">
-                  Password
+                  Kata Sandi
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -140,7 +140,7 @@ export function LoginPage({ onSwitchToRegister }: LoginPageProps) {
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
                 disabled={isLoading}
               >
-                {isLoading ? "Signing in..." : "Sign In"}
+                {isLoading ? "Sedang masuk..." : "Masuk"}
               </Button>
             </form>
           </CardContent>
