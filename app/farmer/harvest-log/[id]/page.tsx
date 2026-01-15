@@ -283,7 +283,7 @@ export default function HarvestDetailPage() {
                   </pre>
                 ) : (
                   <p className="text-sm italic text-red-500 pt-2">
-                    Gagal memuat atau metadata IPFS tidak tersedia untuk hash: **{record.ipfsHash}**.
+                    Gagal memuat atau metadata IPFS tidak tersedia untuk hash: {record.ipfsHash}.
                   </p>
                 )}
               </div>

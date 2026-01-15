@@ -362,7 +362,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ recordId, currentSt
           {/* Pesan Jika Sudah Diverifikasi */}
           {!isPending && (
             <div className="p-4 bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700">
-              Catatan ini sudah ditinjau dan statusnya **{currentStatus}**. Aksi verifikasi tidak dapat diulang.
+              Catatan ini sudah ditinjau dan statusnya {currentStatus}. Aksi verifikasi tidak dapat diulang.
             </div>
           )}
 
@@ -559,7 +559,7 @@ export default function HarvestDetailPage() {
                 <CardHeader className="flex flex-row items-start justify-between">
                   <div>
                     <CardTitle>Detail Catatan Panen {record.productName}</CardTitle>
-                    <CardDescription>Batch: **{record.batchId}** | ID Event: {record.id}</CardDescription>
+                    <CardDescription>Batch: {record.batchId} | ID Event: {record.id}</CardDescription>
                   </div>
 
                   {/* QR CODE */}
@@ -674,7 +674,7 @@ export default function HarvestDetailPage() {
                     ) : (
                       <div className="p-4 border rounded-lg bg-yellow-50 dark:bg-yellow-900/10 text-sm text-yellow-700">
                         <p className="font-medium">Catatan verifikasi (Sertifikat) belum tersedia.</p>
-                        <p className="text-xs mt-1">Status saat ini: **{record.status}**.</p>
+                        <p className="text-xs mt-1">Status saat ini: {record.status}.</p>
                       </div>
                     )}
 
@@ -706,7 +706,7 @@ export default function HarvestDetailPage() {
                         </pre>
                       ) : (
                         <p className="text-sm italic text-red-500 pt-2">
-                          Gagal memuat atau metadata IPFS tidak tersedia untuk hash: **{record.ipfsHash}**.
+                          Gagal memuat atau metadata IPFS tidak tersedia untuk hash: {record.ipfsHash}.
                         </p>
                       )}
                     </div>

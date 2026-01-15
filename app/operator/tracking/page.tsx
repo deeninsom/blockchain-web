@@ -12,7 +12,8 @@ import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
 import {
-    Truck, CheckCircle, Clock, Loader2, Package, XCircle
+    Truck, CheckCircle, Clock, Loader2, Package, XCircle,
+    Eye
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 
@@ -170,6 +171,7 @@ export default function TrackingListPage() {
                                             <TableHead>Batch ID</TableHead>
                                             <TableHead>Produk</TableHead>
                                             <TableHead>Quantity</TableHead>
+                                            <TableHead>Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
 
@@ -177,12 +179,23 @@ export default function TrackingListPage() {
                                         {records.map((r) => (
                                             <TableRow
                                                 key={r.id}
-                                                onClick={() => handleRowClick(r.id)}
-                                                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                                                // onClick={() => handleRowClick(r.id)}
+                                                className=" hover:bg-muted/50 transition-colors"
                                             >
                                                 <TableCell className="font-medium">{r.batchId}</TableCell>
                                                 <TableCell>{r.productName}</TableCell>
                                                 <TableCell>{r.quantityDisplay} {r.unit}</TableCell>
+                                                <TableCell className="flex space-x-2">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleRowClick(r.id)}
+                                                        className="text-primary cursor-pointer hover:bg-primary/10"
+                                                    // disabled={isSubmitting}
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </Button>
+                                                </TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>

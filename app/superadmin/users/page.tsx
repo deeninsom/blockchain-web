@@ -219,16 +219,16 @@ export default function MasterUsersPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Master Users</h1>
-            <p className="text-muted-foreground mt-1">Manage platform administrators and key accounts.</p>
+            <p className="text-muted-foreground mt-1">Mengelola administrator platform dan akun-akun penting.</p>
           </div>
 
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90">Add New</Button>
+              <Button className="bg-primary hover:bg-primary/90">Tambah</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Create New Master User</DialogTitle>
+                <DialogTitle>Buat Pengguna Master Baru</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <Input
@@ -284,8 +284,8 @@ export default function MasterUsersPage() {
         {/* === USERS TABLE === */}
         <Card className="bg-card/50 backdrop-blur border-border">
           <CardHeader>
-            <CardTitle>Master User List ({userList.length} total)</CardTitle>
-            <CardDescription>View, edit, and manage all users with elevated permissions.</CardDescription>
+            <CardTitle>Daftar Pengguna ({userList.length} total)</CardTitle>
+            <CardDescription>Lihat, edit, dan kelola semua pengguna dengan hak akses yang lebih tinggi.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -302,7 +302,7 @@ export default function MasterUsersPage() {
                 <TableBody>
                   {userList.map((user) => (
                     <TableRow key={user.id} className="border-border">
-                      <TableCell className="text-foreground font-medium">{user.name}</TableCell>
+                      <TableCell className="text-foreground font-medium">{user.name.toUpperCase()}</TableCell>
                       <TableCell className="text-foreground">{user.email}</TableCell>
                       <TableCell className="text-muted-foreground">{user.role}</TableCell>
                       <TableCell
