@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Link as LinkIcon, ArrowLeft, Loader2 } from 'lucide-react'; // Tambahkan Loader2
 import NextLink from 'next/link';
 import { useNotification } from "@/lib/notification-context" // Import useNotification
+import { AdminLayout } from "@/components/admin/admin-layout"
 
 // --- Tipe Data Disesuaikan dengan Respons API Baru ---
 interface TraceEvent {
@@ -125,7 +126,7 @@ export default function TrackingDetailPage() {
   const reversedEvents = detail?.events.slice().reverse() || [];
 
   return (
-    <FarmerLayout>
+    <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -192,7 +193,7 @@ export default function TrackingDetailPage() {
                           {/* Detail Logistik (Hanya ada jika GPS/Notes ada) */}
                           {event.gpsCoordinates && (
                             <p className="text-sm text-gray-700 dark:text-gray-300">
-                              **GPS:** <a
+                              GPS: <a
                                 // Link ke Google Maps menggunakan koordinat
                                 href={`https://www.google.com/maps/search/?api=1&query=${event.gpsCoordinates}`}
                                 target="_blank"
@@ -205,16 +206,16 @@ export default function TrackingDetailPage() {
                           )}
                           {event.notes && (
                             <p className="text-sm text-gray-700 dark:text-gray-300">
-                              **Catatan:** {event.notes}
+                              Catatan: {event.notes}
                             </p>
                           )}
 
                           {/* Bukti Imutabilitas */}
                           <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                            **Tx Hash:** {event.txHash}
+                            Tx Hash: {event.txHash}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                            **IPFS Hash:** {event.ipfsHash}
+                            IPFS Hash: {event.ipfsHash}
                           </p>
                           <Button
                             variant="link"
@@ -235,6 +236,6 @@ export default function TrackingDetailPage() {
           </CardContent>
         </Card>
       </div>
-    </FarmerLayout>
+    </AdminLayout>
   )
 }

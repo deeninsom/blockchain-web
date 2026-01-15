@@ -102,7 +102,7 @@ export default function TransactionExplorerPage() {
     return <div className="p-10 text-center text-red-600">Error: {error}</div>;
   }
 
-  if (!data) return <div className="p-10 text-center">No data found for this transaction hash.</div>;
+  if (!data) return <div className="p-10 text-center">Tidak ditemukan data untuk hash transaksi ini..</div>;
 
   const event = data.decodedEvent;
 
@@ -114,7 +114,7 @@ export default function TransactionExplorerPage() {
         <CardHeader className="bg-gray-50 dark:bg-gray-900 border-b p-6 flex-row items-center justify-between">
           <div className="flex flex-col">
             <CardTitle className="text-xl md:text-2xl flex items-center gap-2">
-              <Hash className="h-6 w-6 text-primary" /> Transaction Hash
+              <Hash className="h-6 w-6 text-primary" /> Hash Transaksi
             </CardTitle>
             <CardDescription className="font-mono text-sm mt-1 break-all">{data.txHash}</CardDescription>
           </div>
@@ -124,10 +124,10 @@ export default function TransactionExplorerPage() {
 
           {/* TRANSACTION SUMMARY */}
           <div className="space-y-1">
-            <h3 className="text-lg font-semibold mb-2">Summary</h3>
+            <h3 className="text-lg font-semibold mb-2">Ringkasan</h3>
             <DataRow label="Block Number" value={data.blockNumber} />
-            <DataRow label="Gas Used" value={<span>{data.gasUsed} <Zap className="h-4 w-4 inline text-yellow-600" /></span>} />
-            <DataRow label="Events Emitted" value={data.eventsEmitted} />
+            <DataRow label="Penggunaan Gas" value={<span>{data.gasUsed} <Zap className="h-4 w-4 inline text-yellow-600" /></span>} />
+            <DataRow label="Event yang Tercatat" value={data.eventsEmitted} />
           </div>
 
           <Separator className="my-6" />
@@ -160,7 +160,7 @@ export default function TransactionExplorerPage() {
             </div>
           ) : (
             <p className="text-muted-foreground italic p-3 border rounded-md">
-              No specific Supply Chain event found (ProductEvent) or logs could not be decoded.
+              Tidak ditemukan event Rantai Pasokan spesifik (ProductEvent) atau log tidak dapat diuraikan.
             </p>
           )}
         </CardContent>

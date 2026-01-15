@@ -33,7 +33,7 @@ export default function PerformanceLab() {
     <AdminLayout>
       <div className="min-h-screen  text-white p-10">
         <h1 className="text-3xl font-bold mb-2">Blockchain Performance Lab</h1>
-        <p className="text-gray-400 mb-8">PT. BOS Fresh Performance Analysis (ETH vs HLF)</p>
+        <p className="text-gray-400 mb-8">Analisis Kinerja PT. BOS Fresh (ETH vs HLF)</p>
 
         {/* Control Panel */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4  p-6 rounded-xl mb-8 border border-gray-700">
@@ -61,7 +61,7 @@ export default function PerformanceLab() {
         </div>
 
         {results && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-3">
             {/* Chart TPS */}
             <div className="bg-gray-800 p-6 rounded-xl border border-gray-700">
               <h3 className="text-lg font-semibold mb-4 text-blue-400">Throughput Comparison (TPS)</h3>

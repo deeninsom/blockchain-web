@@ -149,7 +149,7 @@ export default function TrackingListPage() {
                     <CardHeader>
                         <CardTitle>Daftar Batch Siap Kirim</CardTitle>
                         <CardDescription>
-                            Batch di bawah ini telah diambil dari petani. Klik baris untuk mencatat lokasi pengiriman.
+                            Batch di bawah ini telah diambil dari petani. Klik baris untuk melihat detail.
                         </CardDescription>
                     </CardHeader>
 

@@ -581,7 +581,7 @@ export default function HarvestDetailPage() {
                     {/* DETAIL HARVEST */}
                     <h3 className="font-semibold text-lg border-b pb-1">Detail Panen</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 text-sm">
-                      <p className="font-medium">Batch Number:</p><p className="truncate">{record.batchId}</p>
+                      <p className="font-medium">Nomor Batch:</p><p className="truncate">{record.batchId}</p>
                       <p className="font-medium">Lokasi:</p><p className="truncate">{record.location}</p>
                       <p className="font-medium">Kuantitas:</p><p className="truncate font-bold text-primary">{record.quantity} {record.unit}</p>
                       <p className="font-medium">Waktu Panen:</p><p className="truncate">{record.harvestDate}</p>
@@ -598,7 +598,7 @@ export default function HarvestDetailPage() {
                       {/* Transaction Hash */}
                       {record.txHash && (
                         <>
-                          <p className="font-medium">Transaction Hash (On-Chain):</p>
+                          <p className="font-medium">Hash Transaksi (On-Chain):</p>
                           <a
                             href={`${EXPLORER_BASE_URL}${record.txHash}`}
                             target="_blank"
@@ -642,7 +642,7 @@ export default function HarvestDetailPage() {
                           <p className="truncate font-mono text-xs">{verificationTrace.verifierAddress || 'N/A'}</p>
 
                           {/* Hash Transaksi Verifikasi */}
-                          <p className="font-medium">Tx Hash Verifikasi (Blockchain):</p>
+                          <p className="font-medium">Hash Transaksi (Verifikasi):</p>
                           <a
                             href={`${EXPLORER_BASE_URL}${verificationTrace.txHash}`}
                             target="_blank"

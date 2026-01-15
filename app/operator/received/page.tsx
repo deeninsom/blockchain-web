@@ -321,7 +321,7 @@ export default function PickupPage() {
                             <Truck className="w-8 h-8" /> Pencatatan Penerimaan Gudang
                         </h1>
                         <p className="text-muted-foreground mt-1">
-                            Sebagai **LOGISTIK/OPERATOR**, catat penerimaan barang.
+                            Sebagai LOGISTIK/OPERATOR, catat penerimaan barang.
                         </p>
                     </div>
                 </div>

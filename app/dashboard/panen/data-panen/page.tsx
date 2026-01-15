@@ -227,7 +227,7 @@ export default function RecordHarvestPage() {
                       <TableHead>Quantity</TableHead>
                       <TableHead>Tanggal Panen</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Blockchain</TableHead>
+                      <TableHead>Hash Transaksi</TableHead>
                     </TableRow>
                   </TableHeader>
 

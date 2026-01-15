@@ -337,7 +337,7 @@ export default function PickupPage() {
                             <Truck className="w-8 h-8" /> Pencatatan Pickup
                         </h1>
                         <p className="text-muted-foreground mt-1">
-                            Sebagai **LOGISTIK/OPERATOR**, catat pengambilan barang HANYA melalui QR Code.
+                            Sebagai LOGISTIK/OPERATOR, catat pengambilan barang HANYA melalui QR Code.
                         </p>
                     </div>
                 </div>

@@ -202,23 +202,23 @@ export default function TrackingDetailPage() {
                           )}
                           {event.notes && (
                             <p className="text-sm text-gray-700 dark:text-gray-300">
-                              **Catatan:** {event.notes}
+                              Catatan: {event.notes}
                             </p>
                           )}
 
                           {/* Bukti Imutabilitas */}
                           <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                            **Tx Hash:** {event.txHash}
+                            Tx Hash:{event.txHash}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                            **IPFS Hash:** {event.ipfsHash}
+                            IPFS Hash: {event.ipfsHash}
                           </p>
                           <Button
                             variant="link"
                             size="sm"
                             className="h-4 p-0 text-primary hover:underline"
                             // Ganti dengan link Block Explorer yang sebenarnya
-                            onClick={() => window.open(`http://public-tx/${event.txHash}`, '_blank')}
+                            onClick={() => window.open(`${process.env.NEXT_PUBLIC_URL}public-tx/${event.txHash}`, '_blank')}
                           >
                             <LinkIcon className="w-3 h-3 mr-1" /> Lihat Bukti On-Chain
                           </Button>
