@@ -53,16 +53,20 @@ export async function PATCH(
     const { notes } = await req.json();
 
     // 🛑 Validasi Notes
-    if (!notes || typeof notes !== 'string' || notes.trim().length < 10) {
+    if (!notes || typeof notes !== 'string') {
       return NextResponse.json(
         { success: false, message: "Catatan penolakan wajib diisi, minimal 10 karakter." },
         { status: 400 }
       );
     }
 
+    console.log(uniqueBatchId)
+    const existingProduct = await prisma.productEvent.findUnique({
+      where: { id: uniqueBatchId },
+    });
     // --- 2. CEK BATCH STATUS BERDASARKAN uniqueBatchId ---
     const existingBatch = await prisma.batch.findUnique({
-      where: { batchId: uniqueBatchId },
+      where: { id: existingProduct?.batchRefId || '' },
     });
 
     if (!existingBatch) {
