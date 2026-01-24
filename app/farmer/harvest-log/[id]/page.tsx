@@ -207,17 +207,7 @@ export default function HarvestDetailPage() {
               <CardDescription>ID Event: {record.id}</CardDescription>
             </div>
 
-            {/* QR CODE */}
-            <div className="flex flex-col items-center gap-1 border p-2 rounded-md bg-white shadow-sm">
 
-              <QRCodeCanvas
-                value={record.batchId} // Data yang akan di-encode menjadi QR Code
-                size={100}            // Ukuran dalam piksel
-                level="H"             // Level koreksi error (L, M, Q, H)
-              // Di sini Anda bisa menambahkan props lain seperti bgColor, fgColor, dll.
-              />
-              <span className="text-xs font-medium text-gray-500 mt-1">QR Trace</span>
-            </div>
           </CardHeader>
 
           <CardContent>

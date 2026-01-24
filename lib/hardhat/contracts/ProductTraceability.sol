@@ -43,17 +43,13 @@ contract ProductTraceability {
         uint8 _eventType,
         string memory _ipfsHash
     ) public {
-        // GUARDRAIL 1: Hanya operator backend yang dapat mengirim transaksi
         require(msg.sender == operator, "Hanya operator yang dapat mencatat event.");
 
-        // GUARDRAIL 2: Memastikan eventType adalah salah satu kode yang diizinkan (1, 2, 3, atau 5)
         require(_eventType == 1 || _eventType == 2 || _eventType == 3 ||_eventType == 4 || _eventType == 5 || _eventType == 99, 
                 "EventType tidak valid. Harus 1, 2, 3, atau 5.");
 
-        // Simpan IPFS Hash terbaru untuk quick lookup
         latestIpfsHashes[_batchId] = _ipfsHash;
 
-        // Emit Event (Pencatatan on-chain)
         emit ProductEvent(
             _batchId,
             _actorAddress, 
@@ -63,7 +59,6 @@ contract ProductTraceability {
         );
     }
 
-    // Fungsi untuk mendapatkan IPFS Hash terbaru
     function getLatestIpfsHash(bytes32 _batchId) public view returns (string memory) {
         return latestIpfsHashes[_batchId];
     }

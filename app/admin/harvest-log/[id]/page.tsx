@@ -561,18 +561,6 @@ export default function HarvestDetailPage() {
                     <CardTitle>Detail Catatan Panen {record.productName}</CardTitle>
                     <CardDescription>Batch: {record.batchId} | ID Event: {record.id}</CardDescription>
                   </div>
-
-                  {/* QR CODE */}
-                  <div className="flex flex-col items-center gap-1 border p-2 rounded-md bg-white shadow-sm">
-                    <img
-                      src={`/api/v1/qr-code/${record.batchId}`}
-                      alt={`QR Code Traceability untuk Batch ID ${record.batchId}`}
-                      width={100}
-                      height={100}
-                      className="object-contain"
-                    />
-                    <span className="text-xs font-medium text-gray-500 mt-1">QR Trace</span>
-                  </div>
                 </CardHeader>
 
                 <CardContent>

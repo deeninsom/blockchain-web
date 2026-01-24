@@ -1,27 +1,17 @@
-// scripts/deploy.ts (Koreksi Final)
 import { ethers, Wallet } from "ethers";
 import * as dotenv from 'dotenv';
 import path from 'path';
 import * as fs from 'fs';
 import { fileURLToPath } from 'url';
 
-// --- Mengganti __dirname di ES Module ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// ----------------------------------------
-
-// Asumsi file .env berada di root folder hardhat (../)
-// Jika Anda menjalankan ini dari root folder Hardhat, path ini seharusnya benar.
 dotenv.config({
   path: path.resolve(__dirname, '../.env')
 });
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY as string;
-// KOREKSI: Menggunakan RPC_URL sesuai dengan file .env Anda
 const RPC_URL = process.env.RPC_URL as string;
-
-// --- Baca Artifact Kontrak Secara Manual ---
-// Path ini diasumsikan relatif terhadap folder Hardhat root: ../artifacts/
 const artifactPath = path.resolve(__dirname, '../artifacts/contracts/ProductTraceability.sol/ProductTraceability.json');
 const ProductTraceabilityArtifact = JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
 const CONTRACT_ABI = ProductTraceabilityArtifact.abi;
@@ -45,7 +35,6 @@ async function main() {
   // 3. Deployment (Mengirim Transaksi)
   const contract = await Factory.deploy();
 
-  // --- KOREKSI KRITIS DI SINI ---
   // Ambil objek Transaction Response untuk mendapatkan hash dan menunggu receipt
   const deploymentTx = contract.deploymentTransaction();
   if (!deploymentTx) {
