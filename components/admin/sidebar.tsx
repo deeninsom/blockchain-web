@@ -85,7 +85,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
       icon: Wheat,
       submenu: [
         { label: "Pencatatan", href: "/admin/harvest-log" },
-        { label: "Riwayat Perjalan", href: "/admin/tracking" },
+        { label: "Riwayat Perjalanan", href: "/admin/tracking" },
       ],
     },
     {
