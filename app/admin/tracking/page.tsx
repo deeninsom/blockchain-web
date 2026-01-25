@@ -180,7 +180,7 @@ export default function TrackingListPage() {
                                             <TableRow
                                                 key={r.id}
                                                 // onClick={() => handleRowClick(r.id)}
-                                                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                                                className="hover:bg-muted/50 transition-colors"
                                             >
                                                 <TableCell className="font-medium">{r.batchId}</TableCell>
                                                 <TableCell>{r.productName}</TableCell>

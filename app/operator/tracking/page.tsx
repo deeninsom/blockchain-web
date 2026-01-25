@@ -191,7 +191,6 @@ export default function TrackingListPage() {
                                                         size="icon"
                                                         onClick={() => handleRowClick(r.id)}
                                                         className="text-primary cursor-pointer hover:bg-primary/10"
-                                                    // disabled={isSubmitting}
                                                     >
                                                         <Eye className="h-4 w-4" />
                                                     </Button>

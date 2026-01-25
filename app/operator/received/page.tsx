@@ -71,9 +71,6 @@ export default function PickupPage() {
         }));
     };
 
-    /**
-     * @description Mengambil data batch dari API setelah scan.
-     */
     const handleScanResult = async (scannedBatchId: string) => {
         // PERBAIKAN 1: Pastikan Batch ID tidak kosong
         if (!scannedBatchId || scannedBatchId.trim() === "") {
@@ -146,9 +143,7 @@ export default function PickupPage() {
         }
     };
 
-    /**
-     * @description Handler saat QR code berhasil dipindai oleh komponen kamera.
-     */
+
     const handleCameraScan = (scannedValue: string) => {
         setIsCameraModalOpen(false); // Tutup dialog kamera
         let finalBatchId = scannedValue;
@@ -175,9 +170,6 @@ export default function PickupPage() {
         handleScanResult(MOCK_SCAN_BATCH_ID);
     };
 
-    /**
-     * @description Mereset form dan kembali ke mode scan
-     */
     const resetToScanMode = () => {
         setFormData(initialFormData);
         setScannedData(null);
@@ -185,9 +177,6 @@ export default function PickupPage() {
         setIsCameraModalOpen(false);
     };
 
-    /**
-     * @description Mengirim data pickup ke API untuk mencatat transaksi on-chain.
-     */
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -358,9 +347,9 @@ export default function PickupPage() {
                                         <CheckCircle className="w-4 h-4" /> Data Produk Ditemukan
                                     </div>
                                     <p className="ml-6">
-                                        **Batch ID:** {scannedData.batchId} <br />
-                                        **Petani:** {scannedData.farmerName} <br />
-                                        **Kuantitas Awal Tersedia:** {scannedData.initialQuantity} {scannedData.unit}
+                                        Batch ID: {scannedData.batchId} <br />
+                                        Petani: {scannedData.farmerName} <br />
+                                        Kuantitas Awal Tersedia: {scannedData.initialQuantity} {scannedData.unit}
                                     </p>
                                 </div>
 
@@ -398,7 +387,7 @@ export default function PickupPage() {
                                 {/* Quantity & Unit */}
                                 <div className="flex space-x-4">
                                     <div className="space-y-2 flex-grow">
-                                        <Label htmlFor="quantity">Kuantitas Diambil - **Verifikasi Nilai Ini**</Label>
+                                        <Label htmlFor="quantity">Kuantitas Diambil - Verifikasi Nilai Ini</Label>
                                         <Input
                                             id="quantity"
                                             type="text"

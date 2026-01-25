@@ -5,7 +5,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Lock, Mail, Eye, EyeOff } from "lucide-react"
+import { Lock, Mail, Eye, EyeOff, Leaf } from "lucide-react"
 
 import { useRouter } from 'next/navigation'
 import { useNotification } from "@/lib/notification-context"
@@ -74,11 +74,11 @@ export function LoginPage({ onSwitchToRegister }: LoginPageProps) {
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center gap-2 mb-4">
             <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">B</span>
+              <Leaf className="w-5 h-5 text-white" strokeWidth={2.2} />
             </div>
             <h1 className="text-2xl font-bold text-foreground">Portal Blockchain</h1>
           </div>
-          <p className="text-muted-foreground text-sm">Platform Transparansi Blockchain</p>
+          <p className="text-muted-foreground text-sm">Protokol Transparansi & Integritas Blockchain</p>
         </div>
 
         {/* Login Card */}

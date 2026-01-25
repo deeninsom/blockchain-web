@@ -5,73 +5,99 @@ export async function POST(req: NextRequest) {
   try {
     const { throughput, duration } = await req.json();
 
-    // 1. Buat Parent Session untuk mencatat hasil uji coba ini
+    const testDurationSec = parseInt(duration) || 10;
+    const targetThroughput = parseInt(throughput) || 5;
+
+    // 1. Buat Parent Session
     const session = await prisma.testSession.create({
       data: {
-        duration: parseInt(duration) || 0,
-        targetThroughput: parseInt(throughput) || 0,
+        duration: testDurationSec,
+        targetThroughput,
       }
     });
 
-    // 2. Ambil data sampel saja (hanya sebagai referensi ID, bukan untuk loop semua)
+    // 2. Ambil data referensi
     const sampleBatch = await prisma.batch.findFirst();
-    const sampleUser = await prisma.user.findFirst({ where: { role: 'FARMER' } });
+    const sampleUser = await prisma.user.findFirst({
+      where: { role: "FARMER" }
+    });
 
     if (!sampleBatch || !sampleUser) {
-      return NextResponse.json({ error: "Data referensi (Batch/User) tidak ditemukan" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Data referensi (Batch/User) tidak ditemukan" },
+        { status: 400 }
+      );
     }
 
-    // 3. Batasi beban kerja agar tidak terjadi data explosion
-    // Kita gunakan jumlah throughput sebagai jumlah iterasi, bukan mengalikan seluruh isi DB
-    const iterations = Math.min(parseInt(throughput) || 10, 50); // Maksimal 50 per klik agar aman
-    const tasks = [];
-    const startTime = Date.now();
+    console.log(
+      `Benchmark dimulai | duration=${testDurationSec}s | target=${targetThroughput} tx/s`
+    );
 
-    console.log(`Memulai benchmark: ${iterations} iterasi untuk masing-masing chain...`);
+    // 3. Time-based Load Generator
+    const tasks: Promise<any>[] = [];
+    const startBenchmark = Date.now();
+    const endBenchmark = startBenchmark + testDurationSec * 1000;
 
-    // 4. Load Generator (Producer)
-    // Menggunakan loop terkontrol untuk mengumpulkan janji (promises)
-    for (let i = 0; i < iterations; i++) {
-      tasks.push(simulateTransaction("ETHEREUM", sampleBatch, sampleUser, session.id));
-      tasks.push(simulateTransaction("HYPERLEDGER", sampleBatch, sampleUser, session.id));
+    while (Date.now() < endBenchmark) {
+      for (let i = 0; i < targetThroughput; i++) {
+        tasks.push(
+          simulateTransaction("ETHEREUM", sampleBatch, sampleUser, session.id)
+        );
+        tasks.push(
+          simulateTransaction("HYPERLEDGER", sampleBatch, sampleUser, session.id)
+        );
+      }
+
+      // pacing 1 detik
+      await new Promise(res => setTimeout(res, 1000));
     }
 
-    // Jalankan simulasi secara paralel
     const allResults = await Promise.all(tasks);
 
-    // 5. Helper Analyzer untuk menghitung metrik
-    const calculateMetrics = (data: any[], totalDurationMs: number) => {
-      if (data.length === 0) return { tps: 0, p50: 0, p95: 0, avg: 0, totalTx: 0 };
+    // 4. Pisahkan hasil per chain
+    const ethResults = allResults.filter(r => r.chain === "ETHEREUM");
+    const hlfResults = allResults.filter(r => r.chain === "HYPERLEDGER");
 
-      const lats = data.map(d => d.latency);
-      const sorted = [...lats].sort((a, b) => a - b);
-      const durationSec = totalDurationMs / 1000;
+    // 5. Analyzer
+    const calculateMetrics = (data: any[]) => {
+      if (data.length === 0) {
+        return { totalTx: 0, tps: 0, p50: 0, p95: 0, avg: 0 };
+      }
+
+      const latencies = data.map(d => d.latency);
+      const sorted = [...latencies].sort((a, b) => a - b);
+
+      const startTimes = data.map(d => d.start);
+      const endTimes = data.map(d => d.end);
+
+      const durationMs =
+        Math.max(...endTimes) - Math.min(...startTimes);
+
+      const durationSec = durationMs / 1000;
 
       return {
         totalTx: data.length,
         tps: parseFloat((data.length / durationSec).toFixed(2)),
         p50: sorted[Math.floor(sorted.length * 0.5)],
         p95: sorted[Math.floor(sorted.length * 0.95)],
-        avg: parseFloat((lats.reduce((a, b) => a + b, 0) / lats.length).toFixed(2))
+        avg: parseFloat(
+          (latencies.reduce((a, b) => a + b, 0) / latencies.length).toFixed(2)
+        )
       };
     };
-
-    const totalDurationMs = Date.now() - startTime;
-    const ethResults = allResults.filter(r => r.chain === "ETHEREUM");
-    const hlfResults = allResults.filter(r => r.chain === "HYPERLEDGER");
 
     const responseData = {
       summary: {
         sessionId: session.id,
-        iterationsPerChain: iterations,
+        testDurationSec,
+        targetThroughputPerSec: targetThroughput,
         totalTransactions: allResults.length,
-        actualDurationMs: totalDurationMs
       },
-      ethereum: calculateMetrics(ethResults, totalDurationMs),
-      hyperledger: calculateMetrics(hlfResults, totalDurationMs)
+      ethereum: calculateMetrics(ethResults),
+      hyperledger: calculateMetrics(hlfResults)
     };
 
-    // 6. Simpan hasil agregat ke DB untuk history grafik
+    // 6. Simpan hasil agregat
     await prisma.aggregateMetric.create({
       data: {
         sessionId: session.id,
@@ -88,38 +114,49 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error("Benchmark Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
   }
 }
 
 /**
- * Fungsi Internal untuk simulasi Transaksi
- * Diperbaiki: Tidak menulis ke tabel ProductEvent (Data Asli)
+ * Simulasi Transaksi Blockchain
  */
-async function simulateTransaction(chain: string, batch: any, user: any, sessionId: string) {
-  const txStart = Date.now();
+async function simulateTransaction(
+  chain: "ETHEREUM" | "HYPERLEDGER",
+  batch: any,
+  user: any,
+  sessionId: string
+) {
+  const start = Date.now();
 
-  // Simulasi waktu tunggu (Latency) masing-masing Blockchain
-  const delayTime = chain === "ETHEREUM"
-    ? 1000 + Math.random() * 500  // Ethereum lebih lambat (Mempool & Mining)
-    : 150 + Math.random() * 100;  // Hyperledger lebih cepat (Direct Endorsement)
+  const delayTime =
+    chain === "ETHEREUM"
+      ? 1000 + Math.random() * 500
+      : 150 + Math.random() * 100;
 
-  await new Promise(r => setTimeout(r, delayTime));
-  const includedTime = new Date();
+  await new Promise(res => setTimeout(res, delayTime));
 
-  // CATATAN: Kita HANYA menulis ke tabel RawMetric untuk keperluan riset,
-  // Kita TIDAK menulis ke prisma.productEvent agar dashboard tetap bersih.
+  const end = Date.now();
+
   await prisma.rawMetric.create({
     data: {
-      sessionId: sessionId,
+      sessionId,
       chainType: chain,
-      submitTime: new Date(txStart),
-      includedTime: includedTime,
+      submitTime: new Date(start),
+      includedTime: new Date(end),
       confirmationTime: new Date(),
-      latencyMs: Date.now() - txStart,
+      latencyMs: end - start,
       status: "SUCCESS"
     }
   });
 
-  return { chain, latency: Date.now() - txStart };
+  return {
+    chain,
+    latency: end - start,
+    start,
+    end
+  };
 }

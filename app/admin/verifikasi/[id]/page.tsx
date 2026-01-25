@@ -28,8 +28,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
-
-
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 /* -------------------------------------------------------------------------- */
 /* TYPES & CONSTANTS                           */
 /* -------------------------------------------------------------------------- */
@@ -55,6 +60,7 @@ interface VerificationFormData {
   expiryDate: Date | undefined;
   file: File | null;
   notes: string;
+  categoryName: string;
 }
 
 // 🟢 Tipe Data Hasil Trace (sesuai output GET /api/v1/harvest/record/trace/[batchId])
@@ -137,11 +143,13 @@ const StatusBadge: React.FC<{ status: RecordStatus | string }> = ({ status }) =>
 /* -------------------------------------------------------------------------- */
 
 const VerificationForm: React.FC<VerificationFormProps> = ({ recordId, currentStatus, onSuccess }) => {
+  const router = useRouter()
   const { addNotification } = useNotification();
   const [formData, setFormData] = useState<VerificationFormData>({
     certificateName: '',
     expiryDate: undefined,
     file: null,
+    categoryName: '',
     notes: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -258,6 +266,11 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ recordId, currentSt
 
   return (
     <Card className={!isPending ? 'opacity-70' : ''}>
+      <div className="flex justify-between items-center">
+        <Button variant="outline" onClick={() => router.back()} className="bg-white">
+          <ArrowLeft className="h-4 w-4 mr-2" /> Kembali ke Riwayat
+        </Button>
+      </div>
       <CardHeader>
         <CardTitle>Aksi Verifikasi & Persetujuan</CardTitle>
         <CardDescription>Lengkapi detail sertifikat yang dikeluarkan untuk memverifikasi catatan panen ini. Status saat ini: <StatusBadge status={currentStatus} /></CardDescription>
@@ -270,7 +283,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ recordId, currentSt
 
             {/* Nama Sertifikat */}
             <div className="space-y-2">
-              <Label htmlFor="certificateName">Nama Sertifikat (e.g., Organic Standard 2024)</Label>
+              <Label htmlFor="certificateName">Nama Sertifikat</Label>
               <Input
                 id="certificateName"
                 name="certificateName"
@@ -278,6 +291,25 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ recordId, currentSt
                 onChange={handleChange}
                 required
               />
+            </div>
+
+            {/* Kategori Produk */}
+            <div className="space-y-2">
+              <Label>Kategori Produk</Label>
+              <Select
+                value={formData.categoryName}
+                onValueChange={(value) =>
+                  setFormData(prev => ({ ...prev, categoryName: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih kategori" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="buah-buahan">Buah-buahan</SelectItem>
+                  <SelectItem value="sayuran">Sayuran</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Tanggal Kadaluarsa */}
@@ -541,200 +573,15 @@ export default function HarvestDetailPage() {
           <TabsTrigger value="aksi">Verifikasi</TabsTrigger>
         </TabsList> */}
 
-        {/* TAB DETAIL */}
-        <Card>
-          <div className="space-y-6">
 
-            {/* HEADER & BACK BUTTON */}
-            <div className="flex justify-between items-center">
-              <Button variant="outline" onClick={() => router.back()} className="bg-white">
-                <ArrowLeft className="h-4 w-4 mr-2" /> Kembali ke Riwayat
-              </Button>
-            </div>
-
-            {/* DETAIL CARD */}
-            <Card>
-              <CardHeader className="flex flex-row items-start justify-between">
-                <div>
-                  <CardTitle>Detail Catatan Panen {record.productName}</CardTitle>
-                  <CardDescription>Batch: {record.batchId} | ID Event: {record.id}</CardDescription>
-                </div>
-              </CardHeader>
-
-              <CardContent>
-                <div className="grid gap-6">
-
-                  {/* DETAIL HARVEST */}
-                  <h3 className="font-semibold text-lg border-b pb-1">Detail Panen</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 text-sm">
-                    <p className="font-medium">Nomor Batch:</p><p className="truncate">{record.batchId}</p>
-                    <p className="font-medium">Lokasi:</p><p className="truncate">{record.location}</p>
-                    <p className="font-medium">Kuantitas:</p><p className="truncate font-bold text-primary">{record.quantity} {record.unit}</p>
-                    <p className="font-medium">Waktu Panen:</p><p className="truncate">{record.harvestDate}</p>
-                    <p className="font-medium">Waktu Pencatatan:</p><p className="truncate">{record.createdAt}</p>
-                  </div>
-
-                  <hr className="my-4" />
-
-                  {/* STATUS & BUKTI DIGITAL */}
-                  <h3 className="font-semibold text-lg border-b pb-1 pt-2">Status & Bukti Digital</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 text-sm">
-                    <p className="font-medium">Status:</p><p><StatusBadge status={record.status} /></p>
-
-                    {/* Transaction Hash */}
-                    {record.txHash && (
-                      <>
-                        <p className="font-medium">Hash Transaksi (On-Chain):</p>
-                        <a
-                          href={`${EXPLORER_BASE_URL}${record.txHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-500 hover:underline flex items-center gap-1 truncate font-mono text-xs"
-                        >
-                          {record.txHash.substring(0, 10)}...<ExternalLink className="h-3 w-3" />
-                        </a>
-                      </>
-                    )}
-                  </div>
-
-                  <hr className="my-4" />
-
-                  {/* DETAIL VERIFIKASI SERTIFIKAT (TAMPILAN BARU) */}
-                  <h3 className="font-semibold text-lg border-b pb-1 pt-2">
-                    📜 Bukti Verifikasi Admin & Sertifikat
-                  </h3>
-
-                  {loadingTrace ? (
-                    <div className="flex items-center text-sm text-gray-500 pt-2">
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memuat data verifikasi...
-                    </div>
-                  ) : verificationTrace?.isVerified ? (
-                    <div className="space-y-4 p-4 border rounded-lg bg-green-50 dark:bg-green-900/10">
-                      <p className="text-sm font-bold text-green-700 flex items-center">
-                        <CheckCircle className="h-5 w-5 mr-2" /> VERIFIKASI RESMI DITEMUKAN (Status Batch: {verificationTrace.status})
-                      </p>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 text-sm">
-                        {/* Nama Sertifikat */}
-                        <p className="font-medium">Nama Sertifikat:</p>
-                        <p className="font-bold text-green-700">{verificationTrace.certName || 'N/A'}</p>
-
-                        {/* Tanggal Kadaluarsa */}
-                        <p className="font-medium">Kadaluarsa:</p>
-                        <p>{verificationTrace.expiryDate ? format(new Date(verificationTrace.expiryDate), "PPP") : 'N/A'}</p>
-
-                        {/* Verifikator */}
-                        <p className="font-medium">Verifikator (Wallet):</p>
-                        <p className="truncate font-mono text-xs">{verificationTrace.verifierAddress || 'N/A'}</p>
-
-                        {/* Hash Transaksi Verifikasi */}
-                        <p className="font-medium">Hash Transaksi (Verifikasi):</p>
-                        <a
-                          href={`${EXPLORER_BASE_URL}${verificationTrace.txHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-500 hover:underline flex items-center gap-1 truncate font-mono text-xs"
-                        >
-                          {verificationTrace.txHash?.substring(0, 10)}...<ExternalLink className="h-3 w-3" />
-                        </a>
-
-                        {/* Tautan Sertifikat File */}
-                        <p className="font-medium">File Sertifikat (IPFS):</p>
-                        <a
-                          href={`${IPFS_GATEWAY_URL}${verificationTrace.certificateFileHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-500 hover:underline flex items-center gap-1 truncate"
-                        >
-                          Lihat Dokumen <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </div>
-
-                      {verificationTrace.notes && (
-                        <div className="mt-4 border-t pt-2">
-                          <p className="font-medium text-sm">Catatan Admin:</p>
-                          <p className="text-sm italic text-gray-600">{verificationTrace.notes}</p>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="p-4 border rounded-lg bg-yellow-50 dark:bg-yellow-900/10 text-sm text-yellow-700">
-                      <p className="font-medium">Catatan verifikasi (Sertifikat) belum tersedia.</p>
-                      <p className="text-xs mt-1">Status saat ini: {record.status}.</p>
-                    </div>
-                  )}
-
-
-                  <hr className="my-4" />
-
-                  {/* DETAIL METADATA IPFS */}
-                  <h3 className="font-semibold text-lg border-b pb-1 pt-2">Metadata IPFS (Data Off-Chain)</h3>
-                  <div className="grid grid-cols-1 gap-y-3 text-sm">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 text-sm">
-                      <p className="font-medium">IPFS Hash (Data):</p>
-                      <a
-                        href={`${IPFS_GATEWAY_URL}${record.ipfsHash}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-500 hover:underline flex items-center gap-1 truncate font-mono text-xs"
-                      >
-                        {record?.ipfsHash?.substring(0, 10)}... <ExternalLink className="h-3 w-3" />
-                      </a>
-                    </div>
-
-                    {loadingIpfs ? (
-                      <div className="flex items-center text-sm text-gray-500 pt-2">
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memuat metadata dari IPFS...
-                      </div>
-                    ) : ipfsMetadata ? (
-                      <pre className="mt-2 w-full p-4 border rounded-lg bg-gray-50 dark:bg-gray-800 text-xs overflow-x-auto text-wrap">
-                        {JSON.stringify(ipfsMetadata, null, 2)}
-                      </pre>
-                    ) : (
-                      <p className="text-sm italic text-red-500 pt-2">
-                        Gagal memuat atau metadata IPFS tidak tersedia untuk hash: {record.ipfsHash}.
-                      </p>
-                    )}
-                  </div>
-
-                  <hr className="my-4" />
-
-                  {/* PHOTO */}
-                  <h3 className="font-semibold text-lg border-b pb-1 pt-2">
-                    Foto Panen
-                    <a
-                      href={`${IPFS_GATEWAY_URL}${record.photoIpfsHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-blue-500 hover:underline flex items-center gap-1 mt-1 font-normal"
-                    >
-                      {record.photoIpfsHash} (Lihat Foto Asli) <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </h3>
-                  {record.photoIpfsHash ? (
-                    <div className="space-y-2">
-                      <img
-                        src={`${IPFS_GATEWAY_URL}${record.photoIpfsHash}`}
-                        alt={`Foto Panen Batch ${record.batchId}`}
-                        className="w-full max-h-[400px] object-contain rounded-lg border"
-                      />
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground italic text-sm">Foto tidak tersedia.</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </Card>
 
         {/* TAB AKSI (VERIFIKASI) */}
         {/* <TabsContent value="aksi"> */}
-        {/* <VerificationForm
-            recordId={record.id}
-            currentStatus={record.status}
-            onSuccess={reloadRecord} // Memicu pemuatan ulang data setelah sukses
-          /> */}
+        <VerificationForm
+          recordId={record.id}
+          currentStatus={record.status}
+          onSuccess={reloadRecord} // Memicu pemuatan ulang data setelah sukses
+        />
         {/* </TabsContent> */}
       </Tabs>
 

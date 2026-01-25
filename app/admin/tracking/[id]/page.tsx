@@ -133,11 +133,11 @@ export default function TrackingDetailPage() {
           <div>
             <h1 className="text-3xl font-bold text-foreground">Detail Tracking product</h1>
             <p className="text-muted-foreground mt-1">
-              Lacak perjalanan Batch ID: **{currentBatchIdDisplay}** ({detail?.productName || '...'})
+              Lacak perjalanan Batch ID: {currentBatchIdDisplay} ({detail?.productName || '...'})
             </p>
           </div>
-          <NextLink href="/farmer/tracking" passHref>
-            <Button variant="outline" className="flex items-center gap-2">
+          <NextLink href="/admin/tracking" passHref>
+            <Button variant="outline" className="flex cursor-pointer items-center gap-2">
               <ArrowLeft className="w-4 h-4" /> Kembali ke Daftar
             </Button>
           </NextLink>
@@ -157,7 +157,7 @@ export default function TrackingDetailPage() {
             ) : reversedEvents.length === 0 ? (
               <div className="text-center p-8 text-gray-500 border border-gray-300 bg-gray-50 rounded-lg">
                 <h3 className="font-semibold mb-2">Tidak Ada Riwayat</h3>
-                <p className="text-sm">Batch ID **{currentBatchIdDisplay}** tidak ditemukan atau belum memiliki catatan trace.</p>
+                <p className="text-sm">Batch ID {currentBatchIdDisplay} tidak ditemukan atau belum memiliki catatan trace.</p>
               </div>
             ) : (
               <div className="space-y-8">

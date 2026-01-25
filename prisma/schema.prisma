@@ -96,6 +96,7 @@ model Certificate {
   certHash       String
   issuedByUserId String
   notes          String?
+  categoryName   String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -130,25 +131,25 @@ model ShipmentLog {
 }
 
 model TestSession {
-  id            String   @id @default(uuid())
-  startTime     DateTime @default(now())
-  duration      Int      // dalam detik
-  targetThroughput Int   // TPS yang dikonfigurasi
-  metrics       RawMetric[]
-  aggregates    AggregateMetric?
+  id               String           @id @default(uuid())
+  startTime        DateTime         @default(now())
+  duration         Int // dalam detik
+  targetThroughput Int // TPS yang dikonfigurasi
+  metrics          RawMetric[]
+  aggregates       AggregateMetric?
 }
 
 model RawMetric {
   id               String      @id @default(uuid())
   sessionId        String
   testSession      TestSession @relation(fields: [sessionId], references: [id])
-  chainType        String      // "ETHEREUM" | "HYPERLEDGER"
-  submitTime       DateTime    // Langkah 2: Load Generator kirim
-  includedTime     DateTime?   // Langkah 3/4: Masuk blok/commit
-  confirmationTime DateTime?   // Langkah 5: Receipt diterima
+  chainType        String // "ETHEREUM" | "HYPERLEDGER"
+  submitTime       DateTime // Langkah 2: Load Generator kirim
+  includedTime     DateTime? // Langkah 3/4: Masuk blok/commit
+  confirmationTime DateTime? // Langkah 5: Receipt diterima
   latencyMs        Float?
   gasUsed          Int?
-  status           String      // "SUCCESS" | "FAILED"
+  status           String // "SUCCESS" | "FAILED"
 }
 
 model AggregateMetric {

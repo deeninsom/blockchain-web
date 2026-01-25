@@ -93,7 +93,7 @@ export default function QRGeneratorPage() {
             <Card key={r.id} className="qr-card overflow-hidden border-2 border-slate-200 shadow-sm break-inside-avoid">
               <CardContent className="p-4 flex flex-col items-center justify-center">
                 <div className="bg-white p-2 border rounded-md mb-3">
-                  <QRCodeSVG value={`${window.location.origin}/consumen/${r.batchId}`} size={130} level="H" />
+                  <QRCodeSVG value={`${window.location.origin}/consumen/${r.id}`} size={130} level="H" />
                 </div>
                 <div className="text-center w-full space-y-1">
                   <p className="font-mono text-[10px] font-black text-black bg-slate-100 py-1 rounded tracking-tighter">

@@ -24,6 +24,7 @@ interface VerifiedFormData {
   certificateName: string;
   expiryDateStr: string;
   notes: string;
+  categoryName: string,
   certificateFile: File;
 }
 
@@ -52,6 +53,7 @@ async function extractFormData(req: NextRequest): Promise<VerifiedFormData | Err
     const certificateName = formData.get('certificateName');
     const expiryDateStr = formData.get('expiryDate');
     const notes = formData.get('notes');
+    const categoryName = formData.get('categoryName');
     const certificateFile = formData.get('certificateFile');
 
     if (
@@ -67,6 +69,7 @@ async function extractFormData(req: NextRequest): Promise<VerifiedFormData | Err
       certificateName: certificateName as string,
       expiryDateStr: expiryDateStr as string,
       notes: (notes || '') as string,
+      categoryName: categoryName as string,
       certificateFile: certificateFile as File
     };
 
@@ -120,7 +123,7 @@ export async function POST(
     if (!formData.success) {
       return NextResponse.json({ success: false, message: formData.error }, { status: formData.status });
     }
-    const { certificateName, expiryDateStr, notes, certificateFile } = formData;
+    const { certificateName, expiryDateStr, notes, certificateFile, categoryName } = formData;
 
     // --- 2. CEK EVENT DAN BATCH STATUS ---
     const existingEvent = await prisma.productEvent.findUnique({
@@ -171,6 +174,7 @@ export async function POST(
         certHash: certificateFileHash,
         issuedByUserId: actorUserId,
         notes: notes,
+        categoryName: categoryName
       }
     });
 

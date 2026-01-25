@@ -17,7 +17,8 @@ import {
 } from "@/components/ui/table"
 import { CameraCapture } from "@/components/farmer/camera-capture"
 import {
-  Camera, Trash, CheckCircle, Clock, Check, Loader2
+  Camera, Trash, CheckCircle, Clock, Check, Loader2,
+  Eye
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 
@@ -320,6 +321,7 @@ export default function RecordHarvestPage() {
                       <TableHead>Tanggal Panen</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Hash Transaksi</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
 
@@ -345,6 +347,16 @@ export default function RecordHarvestPage() {
                           ) : (
                             <span className="text-muted-foreground text-xs">Waiting TX</span>
                           )}
+                        </TableCell>
+                        <TableCell className="flex space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRowClick(r.id)}
+                            className="text-primary cursor-pointer hover:bg-primary/10"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}

@@ -81,7 +81,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
       icon: Wheat,
       submenu: [
         { label: "Pencatatan", href: "/farmer/harvest-log" },
-        { label: "Traceability", href: "/farmer/tracking" },
+        { label: "Riwayat Perjalan", href: "/farmer/tracking" },
       ],
     },
     {

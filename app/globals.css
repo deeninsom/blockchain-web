@@ -10,33 +10,52 @@
   --card-foreground: oklch(0.95 0 0);
   --popover: oklch(0.12 0 0);
   --popover-foreground: oklch(0.95 0 0);
-  --primary: oklch(0.65 0.22 41.116);
+
+  /* ORANGE → HIJAU TOSKA */
+  --primary: oklch(0.65 0.18 190);
   --primary-foreground: oklch(0.95 0 0);
+
   --secondary: oklch(0.25 0 0);
   --secondary-foreground: oklch(0.95 0 0);
   --muted: oklch(0.25 0 0);
   --muted-foreground: oklch(0.6 0 0);
-  --accent: oklch(0.65 0.22 41.116);
+
+  /* ORANGE → HIJAU TOSKA */
+  --accent: oklch(0.65 0.18 190);
   --accent-foreground: oklch(0.95 0 0);
-  --destructive: oklch(0.65 0.18 25.723);
+
+  /* ORANGE → HIJAU TOSKA */
+  --destructive: oklch(0.6 0.16 190);
   --destructive-foreground: oklch(0.95 0 0);
+
   --border: oklch(0.2 0 0);
   --input: oklch(0.15 0 0);
-  --ring: oklch(0.65 0.22 41.116);
-  --chart-1: oklch(0.65 0.22 41.116);
+
+  /* ORANGE → HIJAU TOSKA */
+  --ring: oklch(0.65 0.18 190);
+
+  /* ORANGE → HIJAU TOSKA (CHART) */
+  --chart-1: oklch(0.65 0.18 190);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.75 0.15 100);
-  --chart-4: oklch(0.65 0.18 25.723);
+  --chart-4: oklch(0.6 0.16 190);
   --chart-5: oklch(0.7 0.12 300);
+
   --radius: 0.625rem;
+
   --sidebar: oklch(0.1 0 0);
   --sidebar-foreground: oklch(0.95 0 0);
-  --sidebar-primary: oklch(0.65 0.22 41.116);
+
+  /* ORANGE → HIJAU TOSKA */
+  --sidebar-primary: oklch(0.65 0.18 190);
   --sidebar-primary-foreground: oklch(0.95 0 0);
+
   --sidebar-accent: oklch(0.2 0 0);
   --sidebar-accent-foreground: oklch(0.95 0 0);
   --sidebar-border: oklch(0.18 0 0);
-  --sidebar-ring: oklch(0.65 0.22 41.116);
+
+  /* ORANGE → HIJAU TOSKA */
+  --sidebar-ring: oklch(0.65 0.18 190);
 }
 
 .dark {
@@ -46,32 +65,50 @@
   --card-foreground: oklch(0.95 0 0);
   --popover: oklch(0.12 0 0);
   --popover-foreground: oklch(0.95 0 0);
-  --primary: oklch(0.65 0.22 41.116);
+
+  /* ORANGE → HIJAU TOSKA */
+  --primary: oklch(0.6 0.17 190);
   --primary-foreground: oklch(0.95 0 0);
+
   --secondary: oklch(0.25 0 0);
   --secondary-foreground: oklch(0.95 0 0);
   --muted: oklch(0.25 0 0);
   --muted-foreground: oklch(0.6 0 0);
-  --accent: oklch(0.65 0.22 41.116);
+
+  /* ORANGE → HIJAU TOSKA */
+  --accent: oklch(0.6 0.17 190);
   --accent-foreground: oklch(0.95 0 0);
-  --destructive: oklch(0.65 0.18 25.723);
+
+  /* ORANGE → HIJAU TOSKA */
+  --destructive: oklch(0.55 0.15 190);
   --destructive-foreground: oklch(0.95 0 0);
+
   --border: oklch(0.2 0 0);
   --input: oklch(0.15 0 0);
-  --ring: oklch(0.65 0.22 41.116);
-  --chart-1: oklch(0.65 0.22 41.116);
+
+  /* ORANGE → HIJAU TOSKA */
+  --ring: oklch(0.6 0.17 190);
+
+  /* ORANGE → HIJAU TOSKA (CHART DARK) */
+  --chart-1: oklch(0.6 0.17 190);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.75 0.15 100);
-  --chart-4: oklch(0.65 0.18 25.723);
+  --chart-4: oklch(0.55 0.15 190);
   --chart-5: oklch(0.7 0.12 300);
+
   --sidebar: oklch(0.1 0 0);
   --sidebar-foreground: oklch(0.95 0 0);
-  --sidebar-primary: oklch(0.65 0.22 41.116);
+
+  /* ORANGE → HIJAU TOSKA */
+  --sidebar-primary: oklch(0.6 0.17 190);
   --sidebar-primary-foreground: oklch(0.95 0 0);
+
   --sidebar-accent: oklch(0.2 0 0);
   --sidebar-accent-foreground: oklch(0.95 0 0);
   --sidebar-border: oklch(0.18 0 0);
-  --sidebar-ring: oklch(0.65 0.22 41.116);
+
+  /* ORANGE → HIJAU TOSKA */
+  --sidebar-ring: oklch(0.6 0.17 190);
 }
 
 @theme inline {

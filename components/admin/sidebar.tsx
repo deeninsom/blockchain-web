@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BarChart3, PenTool, FileText, Eye, ChevronDown, User2, Settings, Wheat, ClipboardList } from "lucide-react"
+import { BarChart3, ChevronDown, BadgeCheck, Wheat, ClipboardList } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Cookies from "js-cookie";
 import { jwtDecode } from 'jwt-decode';
@@ -87,6 +87,11 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
         { label: "Pencatatan", href: "/admin/harvest-log" },
         { label: "Riwayat Perjalan", href: "/admin/tracking" },
       ],
+    },
+    {
+      label: "Verifikasi & Sertifikasi",
+      icon: BadgeCheck,
+      href: "/admin/verifikasi",
     },
     {
       label: "Analisis",
