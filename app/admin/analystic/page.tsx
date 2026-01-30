@@ -106,12 +106,12 @@ export default function PerformanceLab() {
         {/* Control Panel */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-6 rounded-xl border border-gray-700 bg-gray-900">
           <div>
-            <label className="text-xs text-gray-400">Real Batch</label>
+            <label className="text-xs text-gray-400">Batch</label>
             <select
               className="w-full bg-gray-800 p-2 rounded mt-1"
               onChange={e => setForm({ ...form, batchId: e.target.value })}
             >
-              <option value="">-- Choose Batch --</option>
+              <option value="">-- Pilih Batch --</option>
               {dbData.batches.map((b: any) => (
                 <option key={b.id} value={b.id}>
                   {b.batchId} - {b.productName}
@@ -121,12 +121,12 @@ export default function PerformanceLab() {
           </div>
 
           <div>
-            <label className="text-xs text-gray-400">Actor</label>
+            <label className="text-xs text-gray-400">Aktor</label>
             <select
               className="w-full bg-gray-800 p-2 rounded mt-1"
               onChange={e => setForm({ ...form, userId: e.target.value })}
             >
-              <option value="">-- Choose User --</option>
+              <option value="">-- Pilih User --</option>
               {dbData.users.map((u: any) => (
                 <option key={u.id} value={u.id}>
                   {u.name} ({u.role})
@@ -136,7 +136,7 @@ export default function PerformanceLab() {
           </div>
 
           <div>
-            <label className="text-xs text-gray-400">Throughput (tx/sec)</label>
+            <label className="text-xs text-gray-400">Throughput </label>
             <input
               type="number"
               className="w-full bg-gray-800 p-2 rounded mt-1"
@@ -150,7 +150,7 @@ export default function PerformanceLab() {
             disabled={loading || !form.batchId}
             className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:opacity-90 rounded h-11 mt-5 font-bold transition"
           >
-            {loading ? "Running Benchmark..." : "Execute Analysis"}
+            {loading ? "Menjalankan Benchmark..." : "Mulai Analysis"}
           </button>
         </div>
 
@@ -159,10 +159,10 @@ export default function PerformanceLab() {
             {/* Summary Cards */}
             <div className="grid md:grid-cols-4 gap-4">
               <SummaryCard title="Session ID" value={results.summary.sessionId.slice(0, 8)} />
-              <SummaryCard title="Total Transactions" value={results.summary.totalTransactions} />
-              <SummaryCard title="Duration (ms)" value={results.summary.testDurationSec} />
+              <SummaryCard title="Total Transaksi" value={results.summary.totalTransactions} />
+              <SummaryCard title="Durasi (ms)" value={results.summary.testDurationSec} />
               <SummaryCard
-                title="Faster Network"
+                title="Jaringan yang cepat"
                 value={fasterChain}
                 highlight
               />
@@ -177,7 +177,7 @@ export default function PerformanceLab() {
             {/* Charts */}
             <div className="bg-gray-900 p-6 rounded-xl border border-gray-700">
               <h3 className="text-lg font-semibold mb-4 text-blue-400">
-                Throughput Comparison (TPS)
+                Perbandingan Throughput (TPS)
               </h3>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
@@ -196,7 +196,7 @@ export default function PerformanceLab() {
 
             <div className="bg-gray-900 p-6 rounded-xl border border-gray-700">
               <h3 className="text-lg font-semibold mb-4 text-green-400">
-                Latency Distribution (ms)
+                Distribusi Latensi (ms)
               </h3>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
@@ -220,7 +220,7 @@ export default function PerformanceLab() {
             {/* Insight */}
             <div className="bg-gradient-to-r from-gray-900 to-gray-800 p-6 rounded-xl border border-gray-700">
               <h3 className="text-lg font-bold mb-3 text-yellow-400">
-                📌 Performance Insight (Auto Analysis)
+                Wawasan Kinerja (Analisis Otomatis)
               </h3>
 
               <div className="space-y-2 text-gray-300 text-sm leading-relaxed">
@@ -228,25 +228,26 @@ export default function PerformanceLab() {
 
                 <div className="mt-4 grid md:grid-cols-3 gap-4">
                   <div className="bg-gray-900 p-4 rounded border border-gray-700">
-                    <p className="text-xs text-gray-400">Latency Advantage</p>
+                    <p className="text-xs text-gray-400">Keuntungan Latensi</p>
                     <p className="font-bold text-green-400">
                       {latencyGapPct}% Faster
                     </p>
                   </div>
 
                   <div className="bg-gray-900 p-4 rounded border border-gray-700">
-                    <p className="text-xs text-gray-400">TPS Winner</p>
+                    <p className="text-xs text-gray-400">
+                      Pemenang TPS</p>
                     <p className="font-bold text-blue-400">
                       {tpsWinner}
                     </p>
                   </div>
 
                   <div className="bg-gray-900 p-4 rounded border border-gray-700">
-                    <p className="text-xs text-gray-400">Recommended Use Case</p>
+                    <p className="text-xs text-gray-400">Penggunaan yang Direkomendasikan</p>
                     <p className="font-bold text-yellow-400">
                       {fasterChain === "Hyperledger Fabric"
-                        ? "Enterprise Traceability"
-                        : "Public Distributed System"}
+                        ? "Ketertelusuran Perusahaan"
+                        : "Sistem Terdistribusi Publik"}
                     </p>
                   </div>
                 </div>
@@ -274,10 +275,10 @@ const ChainCard = ({ name, color, data }: any) => (
   <div className="p-6 rounded-xl bg-gray-900 border border-gray-700">
     <h3 className={`text-lg font-bold mb-4 text-${color}-400`}>{name}</h3>
     <ul className="space-y-2 text-sm text-gray-300">
-      <li>Total TX: <b>{data.totalTx}</b></li>
+      <li>Total Transaksi: <b>{data.totalTx}</b></li>
       <li>TPS: <b>{data.tps}</b></li>
-      <li>Avg Latency: <b>{data.avg} ms</b></li>
-      <li>p95 Latency: <b>{data.p95} ms</b></li>
+      <li>Avg Latensi: <b>{data.avg} ms</b></li>
+      <li>p95 Latensi: <b>{data.p95} ms</b></li>
     </ul>
   </div>
 );

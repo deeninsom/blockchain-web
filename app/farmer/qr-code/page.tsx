@@ -69,7 +69,7 @@ export default function QRGeneratorPage() {
             </Button>
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Cetak Label QR</h1>
-              <p className="text-muted-foreground">Siapkan label fisik untuk ditempel pada packaging.</p>
+              <p className="text-muted-foreground">Siapkan label fisik untuk ditempel pada kemasan.</p>
             </div>
           </div>
           <div className="flex gap-2">

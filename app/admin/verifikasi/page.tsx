@@ -187,9 +187,6 @@ export default function RecordHarvestPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-
-
-
         {formOpen && (
           <Card>
             <CardHeader>
