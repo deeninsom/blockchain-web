@@ -5,13 +5,14 @@ const prisma = new PrismaClient();
 
 /**
  * @route GET /api/v1/logistic/tracking/[batchId]
- * @description Mengambil semua riwayat event on-chain (ProductEvent & ShipmentLog) 
+ * @description Mengambil semua riwayat event on-chain (ProductEvent & ShipmentLog)
  * untuk Batch ID internal tertentu, diurutkan berdasarkan waktu.
  */
 export async function GET(
   request: Request,
   context: { params: Promise<{ batchId: string }> }
 ) {
+  console.log('asdas')
   const batchId = (await (context.params)).batchId;
 
   if (!batchId) {

@@ -38,6 +38,7 @@ export default function ConsumerTracePage() {
   useEffect(() => {
     const fetchTrace = async () => {
       try {
+        console.log(batchId)
         const res = await fetch(`/api/v1/logistic/history/${batchId}`);
         if (!res.ok) throw new Error("Data tidak ditemukan");
         const json = await res.json();

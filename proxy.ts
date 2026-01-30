@@ -17,8 +17,11 @@ const JWT_SECRET = process.env.AUTH_SECRET || "your_super_secret_fallback";
 const PUBLIC_API_PATHS = [
   '/api/auth/login',
   '/api/auth/register',
+  '/api/v1/logistic/history',
   '/api/v1/blockchain/tx',
-  '/public-tx'
+  '/api/v1/blockchain/tx',
+  '/public-tx',
+  '/consumen'
 ];
 
 const ROLE_PATHS = {
