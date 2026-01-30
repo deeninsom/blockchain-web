@@ -46,7 +46,7 @@ export async function GET(req: NextRequest,
 
     // --- 3. AMBIL DATA BATCH & PETANI ---
     const batch = await prisma.batch.findUnique({
-      where: { batchId: batchId },
+      where: { id: batchId },
       select: {
         id: true,
         batchId: true,
