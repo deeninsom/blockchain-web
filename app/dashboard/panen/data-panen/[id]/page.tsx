@@ -89,24 +89,24 @@ const StatusBadge: React.FC<{ status: RecordStatus | string }> = ({ status }) =>
   const statusKey = status as keyof typeof config;
 
   const config = {
-    PENDING: {
+    PENDING: { // Menunggu Review Admin
       icon: <Clock className="h-4 w-4 mr-1" />,
       text: "Menunggu Review",
       color: "text-gray-500 bg-gray-100 dark:bg-gray-800 dark:text-gray-300",
     },
-    REJECTED: {
+    REJECTED: { // Ditolak Admin
       icon: <Trash className="h-4 w-4 mr-1" />,
-      text: "Ditolak Admin",
+      text: "Ditolak ",
       color: "text-red-700 bg-red-100 dark:bg-red-900/50 dark:text-red-400",
     },
-    VERIFIED: {
-      icon: <CheckCircle className="h-4 w-4 mr-1 " />,
-      text: "Terverifikasi (Off-chain)",
+    VERIFIED: { // Diverifikasi Admin (Siap ke Blockchain)
+      icon: <Loader2 className="h-4 w-4 mr-1 animate-spin" />, // Mengubah ini menjadi loader karena biasanya ini adalah state perantara sebelum CONFIRMED
+      text: "Diverifikasi",
       color: "text-indigo-700 bg-indigo-100 dark:bg-indigo-900/50 dark:text-indigo-400",
     },
-    CONFIRMED: {
+    CONFIRMED: { // Sudah di Blockchain (Final)
       icon: <CheckCircle className="h-4 w-4 mr-1" />,
-      text: "Blockchain Confirmed",
+      text: "Confirmed",
       color: "text-green-700 bg-green-100 dark:bg-green-900/50 dark:text-green-400",
     },
     NOT_FOUND: { // Digunakan untuk status batch dari trace API

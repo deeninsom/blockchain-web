@@ -57,6 +57,10 @@ const roles = [
     value: 'ADMIN'
   },
   {
+    name: 'Admin Sertifikasi',
+    value: 'ADMIN_SERTIFIKASI'
+  },
+  {
     name: 'Super Admin',
     value: 'SUPERADMIN'
   },

@@ -46,17 +46,17 @@ const StatusBadge: React.FC<{ status: RecordStatus }> = ({ status }) => {
     },
     REJECTED: { // Ditolak Admin
       icon: <Trash className="h-4 w-4 mr-1" />,
-      text: "Ditolak Admin",
+      text: "Ditolak ",
       color: "text-red-700 bg-red-100 dark:bg-red-900/50 dark:text-red-400",
     },
     VERIFIED: { // Diverifikasi Admin (Siap ke Blockchain)
       icon: <Loader2 className="h-4 w-4 mr-1 animate-spin" />, // Mengubah ini menjadi loader karena biasanya ini adalah state perantara sebelum CONFIRMED
-      text: "Diverifikasi (Proses TX)",
+      text: "Diverifikasi",
       color: "text-indigo-700 bg-indigo-100 dark:bg-indigo-900/50 dark:text-indigo-400",
     },
     CONFIRMED: { // Sudah di Blockchain (Final)
       icon: <CheckCircle className="h-4 w-4 mr-1" />,
-      text: "Blockchain Confirmed",
+      text: "Confirmed",
       color: "text-green-700 bg-green-100 dark:bg-green-900/50 dark:text-green-400",
     },
   }

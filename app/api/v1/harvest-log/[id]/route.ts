@@ -1,6 +1,6 @@
 // src/app/api/v1/harvest/record/[id]/route.ts
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getIpfsJson } from "@/lib/ipfs/getIpfsJson";
 import jwt, { JwtPayload } from 'jsonwebtoken';
@@ -17,122 +17,141 @@ interface CustomJwtPayload extends JwtPayload {
 
 export async function GET(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }// Gunakan tipe yang lebih sederhana setelah `await` dihapus
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const eventId = (await (context.params)).id
+    const batchId = (await context.params).id;
 
-    // --- 1. AUTENTIKASI & OTORISASI ---
-    const token = req.cookies.get('auth_token')?.value;
-    if (!token) {
-      return NextResponse.json({ success: false, message: "Authentication required." }, { status: 401 });
-    }
+    /* ===============================
+       1. AUTH
+    =============================== */
+    const token = req.cookies.get("auth_token")?.value;
+    if (!token) return jsonResponse({ success: false, message: "Authentication required." }, 401);
+
     const decoded = jwt.verify(token, JWT_SECRET) as CustomJwtPayload;
     const actorUserId = decoded.id;
     const actorUserRole = decoded.role;
-    if (!actorUserId) {
-      return NextResponse.json({ success: false, message: "Unauthorized or Invalid User." }, { status: 403 });
-    }
+    if (!actorUserId) return jsonResponse({ success: false, message: "Unauthorized or Invalid User." }, 403);
 
-    // --- 2. Tentukan Kondisi WHERE dengan Logika RBAC ---
-    const whereClause: any = {
-      id: eventId,
-      eventType: 1, // Pastikan ini adalah Harvest Event
-    };
+    /* ===============================
+       2. WHERE CLAUSE
+    =============================== */
+    const whereClause: any = { batchRefId: batchId };
+    if (actorUserRole === "PETANI") whereClause.actorUserId = actorUserId;
 
-    // 🟡 PERBAIKAN RBAC KRITIS: Filter hanya jika perannya PETANI
-    if (actorUserRole === 'PETANI') {
-      // Jika Petani, dia HANYA boleh melihat event yang dia catat
-      whereClause.actorUserId = actorUserId;
-    }
-    // Jika perannya ADMIN, kita TIDAK MENAMBAHKAN filter actorUserId,
-    // sehingga query akan menemukan record berdasarkan eventId saja.
-
-    // --- 2. Ambil ProductEvent dari Database (Termasuk Status dari Batch) ---
-    const event = await prisma.productEvent.findUnique({
+    /* ===============================
+       3. GET EVENTS
+    =============================== */
+    const events = await prisma.productEvent.findMany({
       where: whereClause,
-      select: {
-        id: true,
-        batchId: true,
-        ipfsHash: true,
-        txHash: true,
-        createdAt: true,
-        // 🟢 PERBAIKAN: Join ke Batch untuk mendapatkan status
-        batch: {
-          select: {
-            status: true,
-            productName: true, // Ambil juga productName untuk fallback
-          },
-        },
-      },
+      include: { batch: { select: { status: true, productName: true } } },
+      orderBy: { createdAt: "asc" },
     });
 
-    if (!event) {
-      return NextResponse.json({ success: false, message: "Harvest record not found or unauthorized." }, { status: 404 });
+    if (!events.length) return jsonResponse({ success: false, message: "No events found for this batch." }, 404);
+
+    const firstEvent = events[0];
+    const batchStatus = firstEvent.batch?.status || (events.some(e => e.txHash) ? "CONFIRMED" : "PENDING");
+
+    /* ===============================
+       4. HANDLE IPFS DATA & GROUP NETWORKS
+    =============================== */
+    // Map IPFS hash ke data & network
+    const ipfsMap: Record<string, { data: any | null, networks: any[] }> = {};
+
+    for (const ev of events) {
+      const hash = ev.ipfsHash || ev.certificateFileHash;
+      if (!hash) continue;
+
+      if (!ipfsMap[hash]) {
+        try {
+          ipfsMap[hash] = {
+            data: await getIpfsJson(hash),
+            networks: [{
+              network: ev.chainType,
+              txHash: ev.txHash,
+              blockNumber: ev.blockNumber?.toString() || "0",
+              blockTimestamp: ev.blockTimestamp?.toISOString() || ev.createdAt.toISOString(),
+            }],
+          };
+        } catch {
+          ipfsMap[hash] = {
+            data: null,
+            networks: [{
+              network: ev.chainType,
+              txHash: ev.txHash,
+              blockNumber: ev.blockNumber?.toString() || "0",
+              blockTimestamp: ev.blockTimestamp?.toISOString() || ev.createdAt.toISOString(),
+            }],
+          };
+        }
+      } else {
+        // Tambah network jika belum ada
+        const exists = ipfsMap[hash].networks.find(n => n.txHash === ev.txHash);
+        if (!exists) {
+          ipfsMap[hash].networks.push({
+            network: ev.chainType,
+            txHash: ev.txHash,
+            blockNumber: ev.blockNumber?.toString() || "0",
+            blockTimestamp: ev.blockTimestamp?.toISOString() || ev.createdAt.toISOString(),
+          });
+        }
+      }
     }
 
-    // Fallback status jika batch/status tidak ada (meskipun seharusnya ada)
-    const batchStatus = event.batch?.status || (event.txHash ? "CONFIRMED" : "PENDING");
+    /* ===============================
+       5. AMBIL 1 HARVEST & 1 CERTIFICATION
+    =============================== */
+    const harvestEvent = events.find(e => e.eventType === 1);
+    const certEvent = events.find(e => e.eventType === 99);
 
-    // --- 3. Ambil data detail dari IPFS ---
-    // Handle kasus jika ipfsHash belum ada (misal: error saat proses submit awal)
-    if (!event.ipfsHash) {
-      return jsonResponse({
-        id: event.id,
-        batchId: event.batchId,
-        ipfsHash: null,
-        txHash: event.txHash,
-        createdAt: event.createdAt.toISOString(),
-        location: "N/A",
-        harvestDate: event.createdAt.toISOString(),
-        quantity: "0",
-        unit: "N/A",
-        photoIpfsHash: null,
-        status: batchStatus,
-      });
-    }
+    const harvestData = harvestEvent ? (() => {
+      const ipfs = ipfsMap[harvestEvent.ipfsHash];
+      return {
+        id: harvestEvent.id,
+        batchId: harvestEvent.batchId,
+        location: ipfs?.data?.location || "N/A",
+        productName: ipfs?.data?.productName || harvestEvent.batch?.productName || "N/A",
+        harvestDate: ipfs?.data?.harvestDate || harvestEvent.createdAt.toISOString(),
+        quantity: ipfs?.data?.quantity || "0",
+        unit: ipfs?.data?.unit || "kg",
+        photoIpfsHash: ipfs?.data?.photoIpfsHash || null,
+        networks: ipfs?.networks || [],
+        ipfs: ipfs?.data || null,
+      };
+    })() : null;
 
-    const ipfsData = await getIpfsJson(event.ipfsHash);
-    if (!ipfsData) {
-      // Jika gagal ambil data IPFS, tetap kirim data event yang ada
-      return jsonResponse({
-        id: event.id,
-        batchId: event.batchId,
-        ipfsHash: event.ipfsHash,
-        txHash: event.txHash,
-        createdAt: event.createdAt.toISOString(),
-        location: "N/A (IPFS Failed)",
-        harvestDate: event.createdAt.toISOString(),
-        quantity: "0",
-        unit: "N/A",
-        photoIpfsHash: null,
-        status: batchStatus,
-      });
-    }
+    const certificationData = certEvent ? (() => {
+      const hash = certEvent.ipfsHash || certEvent.certificateFileHash;
+      const ipfs = ipfsMap[hash];
+      return {
+        id: certEvent.id,
+        batchId: certEvent.batchId,
+        certificateName: ipfs?.data?.certName || null,
+        categoryName: ipfs?.data?.categoryName || null,
+        expiryDate: ipfs?.data?.expiryDate || null,
+        notes: ipfs?.data?.notes || null,
+        certificateFileHash: ipfs?.data?.certificateHash || null,
+        issuedByUserId: ipfs?.data?.issuedByUserId || null,
+        networks: ipfs?.networks || [],
+        ipfs: ipfs?.data || null,
+      };
+    })() : null;
 
-
-    // --- 4. Gabungkan dan Format Hasil ---
+    /* ===============================
+       6. FORMAT RESPONSE
+    =============================== */
     const recordDetail = {
-      id: event.id,
-      batchId: event.batchId,
-      ipfsHash: event.ipfsHash,
-      txHash: event.txHash,
-      createdAt: event.createdAt.toISOString(),
-      location: ipfsData.location || "N/A",
-      productName: ipfsData.productName || event.batch?.productName || "N/A",
-      harvestDate: ipfsData.harvestDate || event.createdAt.toISOString(),
-      quantity: ipfsData.quantity || "0",
-      unit: ipfsData.unit || "kg",
-      photoIpfsHash: ipfsData.photoIpfsHash,
-
-      // 🟢 PERBAIKAN STATUS: Mengambil status dari tabel Batch
+      batchId: firstEvent.batchId,
       status: batchStatus,
+      harvestData,
+      certificationData,
     };
 
     return jsonResponse(recordDetail);
 
   } catch (err: any) {
-    console.error(`GET Harvest Record ${(await (context.params)).id} Error:`, err.message);
-    return NextResponse.json({ success: false, message: "Failed to fetch record detail." }, { status: 500 });
+    console.error("GET Batch Detail Error:", err.message);
+    return jsonResponse({ success: false, message: "Failed to fetch batch detail." }, 500);
   }
 }

@@ -58,6 +58,33 @@ model Batch {
 // ========================================================================
 // 3. PRODUCT EVENT (Indeks Verifikasi Blockchain)
 // ========================================================================
+// model ProductEvent {
+//   id String @id @default(uuid())
+
+//   batchId   String
+//   eventType Int
+//   ipfsHash  String
+
+//   actorAddress   String
+//   txHash         String   @unique
+//   blockNumber    BigInt
+//   logIndex       Int
+//   blockTimestamp DateTime
+
+//   actorUserId String?
+//   actorUser   User?   @relation(fields: [actorUserId], references: [id])
+
+//   batchRefId  String?
+//   batch       Batch?       @relation(fields: [batchRefId], references: [id])
+//   shipmentLog ShipmentLog?
+//   createdAt   DateTime     @default(now())
+//   updatedAt   DateTime     @updatedAt
+
+//   @@index([batchId])
+//   @@index([actorAddress])
+//   @@index([eventType])
+// }
+
 model ProductEvent {
   id String @id @default(uuid())
 
@@ -65,8 +92,9 @@ model ProductEvent {
   eventType Int
   ipfsHash  String
 
+  chainType      String // "SEPOLIA" | "AMOY"
   actorAddress   String
-  txHash         String   @unique
+  txHash         String
   blockNumber    BigInt
   logIndex       Int
   blockTimestamp DateTime
@@ -80,9 +108,11 @@ model ProductEvent {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
+  @@unique([txHash, chainType]) // 🔥 bukan lagi txHash tunggal
   @@index([batchId])
   @@index([actorAddress])
   @@index([eventType])
+  @@index([chainType])
 }
 
 // ========================================================================

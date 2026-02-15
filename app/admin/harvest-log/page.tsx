@@ -47,17 +47,17 @@ const StatusBadge: React.FC<{ status: RecordStatus }> = ({ status }) => {
     },
     REJECTED: { // Ditolak Admin
       icon: <Trash className="h-4 w-4 mr-1" />,
-      text: "Ditolak Admin",
+      text: "Ditolak ",
       color: "text-red-700 bg-red-100 dark:bg-red-900/50 dark:text-red-400",
     },
     VERIFIED: { // Diverifikasi Admin (Siap ke Blockchain)
       icon: <Loader2 className="h-4 w-4 mr-1 animate-spin" />, // Mengubah ini menjadi loader karena biasanya ini adalah state perantara sebelum CONFIRMED
-      text: "Diverifikasi (Proses TX)",
+      text: "Diverifikasi",
       color: "text-indigo-700 bg-indigo-100 dark:bg-indigo-900/50 dark:text-indigo-400",
     },
     CONFIRMED: { // Sudah di Blockchain (Final)
       icon: <CheckCircle className="h-4 w-4 mr-1" />,
-      text: "Blockchain Confirmed",
+      text: "Confirmed",
       color: "text-green-700 bg-green-100 dark:bg-green-900/50 dark:text-green-400",
     },
   }
@@ -320,7 +320,6 @@ export default function RecordHarvestPage() {
                       <TableHead>Quantity</TableHead>
                       <TableHead>Tanggal Panen</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Hash Transaksi</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -334,20 +333,7 @@ export default function RecordHarvestPage() {
                         <TableCell>{r.quantity} {r.unit}</TableCell>
                         <TableCell>{r.harvestDate}</TableCell>
                         <TableCell><StatusBadge status={r.status} /></TableCell>
-                        <TableCell>
-                          {r.txHash ? (
-                            <a
-                              href={`/explorer/tx/${r.txHash}`} // ASUMSI: link ke explorer Anda
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-blue-500 hover:underline truncate w-20 inline-block"
-                            >
-                              {r.txHash.substring(0, 6)}...
-                            </a>
-                          ) : (
-                            <span className="text-muted-foreground text-xs">Waiting TX</span>
-                          )}
-                        </TableCell>
+
                         <TableCell className="flex space-x-2">
                           <Button
                             variant="ghost"

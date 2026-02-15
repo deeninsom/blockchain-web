@@ -1,105 +1,112 @@
-// src/lib/blockchain/transaction.ts
-import { ethers, Contract, Wallet } from 'ethers';
-// Diasumsikan abi telah diimpor dengan benar dari Hardhat artifacts
-import { abi } from '../hardhat/artifacts/contracts/ProductTraceability.sol/ProductTraceability.json';
-
-const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS;
-const RPC_URL = process.env.RPC_URL;
-const PRIVATE_KEY = process.env.PRIVATE_KEY;
+import { ethers, Contract } from "ethers";
+import { abi } from "../hardhat/artifacts/contracts/ProductTraceability.sol/ProductTraceability.json";
 
 interface TxResult {
+  network: string;
   txHash: string;
-  blockNumber: bigint;
-  logIndex: number;
+  blockNumber: number;
   blockTimestamp: Date;
+  logIndex: number;
 }
 
-/**
- * Menandatangani dan mengirim transaksi ke local blockchain (Hardhat Network).
- * @param expectedActorAddress Wallet address of the user (aktor sebenarnya) yang dicatat di event.
- * @param batchId ID Batch (sebagai string)
- * @param ipfsHash The Content Identifier (CID) to record on-chain.
- * @param eventType The type of event (e.g., 1 for Harvest).
- * @returns Hasil transaksi yang sebenarnya.
- */
-export async function signAndSendTransaction(
-  expectedActorAddress: string, // Diubah namanya untuk kejelasan
+export async function sendToBothNetworks(
+  expectedActorAddress: string,
   batchId: string,
   ipfsHash: string,
   eventType: number
-): Promise<TxResult> {
-  // 1. Validasi Environment
-  if (!RPC_URL || !PRIVATE_KEY || !CONTRACT_ADDRESS) {
-    throw new Error("Blockchain configuration missing: RPC_URL, PRIVATE_KEY, or CONTRACT_ADDRESS not set.");
-  }
+): Promise<TxResult[]> {
 
-  // 2. Setup Provider dan Signer
-  const provider = new ethers.JsonRpcProvider(RPC_URL);
-  const signer = new ethers.Wallet(PRIVATE_KEY, provider);
+  const PRIVATE_KEY = process.env.PRIVATE_KEY;
+  const SEPOLIA_RPC = process.env.SEPOLIA_RPC;
+  const AMOY_RPC = process.env.AMOY_RPC;
+  const SEPOLIA_CONTRACT = process.env.SEPOLIA_CONTRACT;
+  const AMOY_CONTRACT = process.env.AMOY_CONTRACT;
 
-  // Verifikasi Aktor (Log Warning)
-  if (signer.address.toLowerCase() !== expectedActorAddress.toLowerCase()) {
-    console.warn(`[WARNING] Signer address (${signer.address}) does not match expected actorAddress (${expectedActorAddress}). Using signer address to send TX.`);
-  }
+  if (!PRIVATE_KEY) throw new Error("PRIVATE_KEY missing");
+  if (!SEPOLIA_RPC || !AMOY_RPC) throw new Error("RPC missing");
+  if (!SEPOLIA_CONTRACT || !AMOY_CONTRACT) throw new Error("Contract address missing");
 
-  // 3. Setup Contract Instance
-  const contract = new Contract(CONTRACT_ADDRESS, abi, signer);
-
-  // 4. Logging Transaksi
-  console.log(`\n--- [REAL TX SIMULATION] ---`);
-  console.log(`Signer Address (Tx Sender): ${signer.address}`);
-  console.log(`Expected Actor: ${expectedActorAddress}`); // Logging Expected Actor
-  console.log(`Batch ID: ${batchId}`);
-  console.log(`Data (IPFS Hash): ${ipfsHash}`);
-  console.log(`Event Type: ${eventType}`);
-  console.log(`Sending transaction...`);
-
-  // 5. Konversi Batch ID ke bytes32
-  // KOREKSI: Gunakan konversi standar tanpa padding manual
-  const batchIdBytes = ethers.encodeBytes32String(batchId);
-
-  // 6. Panggil fungsi kontrak
-  // KOREKSI KRITIS: Urutan parameter harus sesuai dengan kontrak Solidity (bytes32, address, uint8, string)
-  const transactionResponse = await contract.recordEvent(
-    batchIdBytes,             // Parameter 1: bytes32 _batchId
-    expectedActorAddress,     // Parameter 2: address _actorAddress
-    eventType,                // Parameter 3: uint8 _eventType
-    ipfsHash                  // Parameter 4: string _ipfsHash
-  );
-
-  // 7. Tunggu konfirmasi (Mining)
-  const receipt = await transactionResponse.wait();
-
-  if (!receipt || receipt.status !== 1) {
-    throw new Error(`Transaction failed on the local chain. Hash: ${transactionResponse.hash}`);
-  }
-
-  // 8. Ambil Block Timestamp
-  let blockTimestamp: Date;
-  try {
-    const block = await provider.getBlock(receipt.blockNumber);
-    if (block && block.timestamp) {
-      blockTimestamp = new Date(Number(block.timestamp) * 1000);
-    } else {
-      console.warn("Could not retrieve block timestamp. Using current date as fallback.");
-      blockTimestamp = new Date();
+  const networks = [
+    {
+      name: "Ethereum Sepolia",
+      rpc: SEPOLIA_RPC,
+      contract: SEPOLIA_CONTRACT
+    },
+    {
+      name: "Polygon Amoy",
+      rpc: AMOY_RPC,
+      contract: AMOY_CONTRACT
     }
-  } catch (e) {
-    console.error("Failed to fetch block details for timestamp.", e);
-    blockTimestamp = new Date();
+  ];
+
+  const results: TxResult[] = [];
+
+  for (const net of networks) {
+
+    console.log(`\n==============================`);
+    console.log(`🌐 Sending to ${net.name}`);
+    console.log(`==============================`);
+
+    try {
+
+      const provider = new ethers.JsonRpcProvider(net.rpc);
+      const signer = new ethers.Wallet(PRIVATE_KEY, provider);
+
+      console.log(`Signer: ${signer.address}`);
+
+      const balanceBigInt = await provider.getBalance(signer.address);
+      const balance = ethers.formatEther(balanceBigInt);
+
+      console.log(`Balance: ${balance}`);
+
+      if (Number(balance) <= 0) {
+        throw new Error(`Saldo kosong di ${net.name}`);
+      }
+
+      const contract = new Contract(net.contract, abi, signer);
+      const batchIdBytes = ethers.encodeBytes32String(batchId);
+
+      console.log("⏳ Sending transaction...");
+
+      const tx = await contract.recordEvent(
+        batchIdBytes,
+        expectedActorAddress,
+        eventType,
+        ipfsHash
+      );
+
+      console.log(`TX Hash: ${tx.hash}`);
+      console.log("⏳ Waiting confirmation...");
+
+      const receipt = await tx.wait();
+
+      if (!receipt || receipt.status !== 1) {
+        throw new Error(`Transaction failed on ${net.name}`);
+      }
+
+      const block = await provider.getBlock(receipt.blockNumber);
+
+      const result: TxResult = {
+        network: net.name,
+        txHash: receipt.hash,
+        blockNumber: receipt.blockNumber,
+        blockTimestamp: new Date(Number(block!.timestamp) * 1000),
+        logIndex: receipt.logs?.[0]?.index ?? 0
+      };
+
+      console.log(`✅ SUCCESS on ${net.name}`);
+      console.log(`Block: ${result.blockNumber}`);
+      console.log(`Time: ${result.blockTimestamp.toISOString()}`);
+
+      results.push(result);
+
+    } catch (error: any) {
+      console.error(`❌ FAILED on ${net.name}`);
+      console.error(error.message);
+    }
   }
 
-  // 9. Ekstrak data hasil transaksi
-  const txResult: TxResult = {
-    txHash: receipt.hash,
-    blockNumber: BigInt(receipt.blockNumber),
-    logIndex: receipt.logs.length > 0 ? receipt.logs[0].index : 0,
-    blockTimestamp: blockTimestamp,
-  };
-
-  console.log(`Transaction SUCCESS! Hash: ${txResult.txHash}`);
-  console.log(`Block: ${txResult.blockNumber.toString()} at ${blockTimestamp.toISOString()}`);
-  console.log(`-------------------------------\n`);
-
-  return txResult;
+  console.log("\n🎉 PROCESS FINISHED");
+  return results;
 }
+

@@ -22,7 +22,7 @@ interface VerifiedFormData {
   certificateName: string;
   expiryDateStr: string;
   notes: string;
-  categoryName: string,
+  categoryName: string;
   certificateFile: File;
 }
 
@@ -99,7 +99,6 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     // --- 2. FORM DATA ---
     const formData = await extractFormData(req);
     if (!formData.success) return NextResponse.json({ success: false, message: formData.error }, { status: formData.status });
-
     const { certificateName, expiryDateStr, notes, certificateFile, categoryName } = formData;
 
     // --- 3. CEK EVENT & BATCH ---
@@ -119,12 +118,15 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     // --- 4. UPLOAD FILE KE IPFS ---
     const uploadDir = path.join(process.cwd(), "public", "uploads");
     await mkdir(uploadDir, { recursive: true });
+
+    // simpan sementara file ke disk
     const buffer = Buffer.from(await certificateFile.arrayBuffer());
     const ext = path.extname(certificateFile.name) || ".pdf";
     const safeName = certificateFile.name.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 20) + "-VERIFY-" + Date.now() + ext;
     tempPath = path.join(uploadDir, safeName);
     await writeFile(tempPath, buffer);
 
+    // upload ke IPFS
     const certificateIpfs = await uploadToIPFS(tempPath, true);
     if (!certificateIpfs?.cid) throw new Error("Certificate IPFS upload failed");
     const certificateFileHash = certificateIpfs.cid;
@@ -184,7 +186,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     // --- 8. UPDATE STATUS BATCH ---
     const updatedBatch = await prisma.batch.update({
       where: { id: existingEvent.batch.id },
-      data: { status: 'VERIFIED', updatedAt: new Date() },
+      data: { status: 'CONFIRMED', updatedAt: new Date() },
     });
 
     return NextResponse.json({

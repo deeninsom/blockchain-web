@@ -29,6 +29,7 @@ const ROLE_PATHS = {
   FARMER: '/farmer',
   DISTRIBUTOR: '/distributor',
   ADMIN: '/admin',
+  ADMIN_SERTIFIKASI: '/admin',
   WAREHOUSE_CENTER: '/operator',
   WAREHOUSE_RETAIL: '/operator'
 };

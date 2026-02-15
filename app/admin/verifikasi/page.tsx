@@ -18,9 +18,11 @@ import {
 import { CameraCapture } from "@/components/farmer/camera-capture"
 import {
   Camera, Trash, CheckCircle, Clock, Check, Loader2,
-  Eye
+  Eye,
+  MoreVertical
 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu"
 
 type RecordStatus = "PENDING" | "REJECTED" | "VERIFIED" | "CONFIRMED";
 interface HarvestRecord {
@@ -47,17 +49,17 @@ const StatusBadge: React.FC<{ status: RecordStatus }> = ({ status }) => {
     },
     REJECTED: { // Ditolak Admin
       icon: <Trash className="h-4 w-4 mr-1" />,
-      text: "Ditolak Admin",
+      text: "Ditolak ",
       color: "text-red-700 bg-red-100 dark:bg-red-900/50 dark:text-red-400",
     },
     VERIFIED: { // Diverifikasi Admin (Siap ke Blockchain)
       icon: <Loader2 className="h-4 w-4 mr-1 animate-spin" />, // Mengubah ini menjadi loader karena biasanya ini adalah state perantara sebelum CONFIRMED
-      text: "Diverifikasi (Proses TX)",
+      text: "Diverifikasi",
       color: "text-indigo-700 bg-indigo-100 dark:bg-indigo-900/50 dark:text-indigo-400",
     },
     CONFIRMED: { // Sudah di Blockchain (Final)
       icon: <CheckCircle className="h-4 w-4 mr-1" />,
-      text: "Blockchain Confirmed",
+      text: "Confirmed",
       color: "text-green-700 bg-green-100 dark:bg-green-900/50 dark:text-green-400",
     },
   }
@@ -317,7 +319,6 @@ export default function RecordHarvestPage() {
                       <TableHead>Quantity</TableHead>
                       <TableHead>Tanggal Panen</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Hash Transaksi</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -331,30 +332,47 @@ export default function RecordHarvestPage() {
                         <TableCell>{r.quantity} {r.unit}</TableCell>
                         <TableCell>{r.harvestDate}</TableCell>
                         <TableCell><StatusBadge status={r.status} /></TableCell>
+
                         <TableCell>
-                          {r.txHash ? (
-                            <a
-                              href={`/explorer/tx/${r.txHash}`} // ASUMSI: link ke explorer Anda
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-blue-500 hover:underline truncate w-20 inline-block"
-                            >
-                              {r.txHash.substring(0, 6)}...
-                            </a>
-                          ) : (
-                            <span className="text-muted-foreground text-xs">Waiting TX</span>
-                          )}
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="hover:bg-muted"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+
+                            <DropdownMenuContent align="end">
+
+                              {/* VERIFIKASI */}
+                              <DropdownMenuItem
+                                onClick={() => router.push(`/admin/verifikasi/${r.id}`)}
+                                className="cursor-pointer"
+                              >
+                                <Check className="h-4 w-4 mr-2 text-blue-600" />
+                                Verifikasi
+                              </DropdownMenuItem>
+
+                              {/* SERTIFIKASI */}
+                              <DropdownMenuItem
+                                onClick={() => router.push(`/admin/verifikasi/${r.id}`)}
+                                disabled={r.status !== "VERIFIED" && r.status !== "CONFIRMED"}
+                                className="cursor-pointer"
+                              >
+                                <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                                Sertifikasi
+                              </DropdownMenuItem>
+
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+
                         </TableCell>
-                        <TableCell className="flex space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleRowClick(r.id)}
-                            className="text-primary cursor-pointer hover:bg-primary/10"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
+
+
                       </TableRow>
                     ))}
                   </TableBody>

@@ -4,7 +4,7 @@ import { mkdir, writeFile, unlink } from "fs/promises";
 import os from 'os';
 import { prisma } from "@/lib/prisma";
 import { uploadToIPFS } from "@/lib/ipfs/uploadToIPFS";
-import { signAndSendTransaction } from "@/lib/blockchain/transaction";
+import { sendToBothNetworks } from "@/lib/blockchain/transaction";
 import jwt, { JwtPayload } from 'jsonwebtoken';
 // Hapus import { jsonResponse } dari "@/lib/json";
 import { getIpfsJson } from "@/lib/ipfs/getIpfsJson";
@@ -109,29 +109,54 @@ export async function POST(req: NextRequest) {
       create: { batchId, productName: ipfsPayload.productName, farmerId: actorUserId },
     });
 
-    const txResult = await signAndSendTransaction(user.actorAddress, batch.batchId, ipfsHash, eventType);
+    const savedEvents = [];
+    const txResults = await sendToBothNetworks(user.actorAddress, batch.batchId, ipfsHash, eventType);
 
-    const productEvent = await prisma.productEvent.create({
-      data: {
-        batchId: batch.batchId,
-        batchRefId: batch.id,
-        eventType: eventType,
-        ipfsHash: ipfsHash,
-        actorAddress: user.actorAddress,
-        actorUserId: user.id,
-        txHash: txResult.txHash,
-        blockNumber: txResult.blockNumber,
-        logIndex: txResult.logIndex,
-        blockTimestamp: txResult.blockTimestamp,
-      },
-    });
+    for (const tx of txResults) {
+      const saved = await prisma.productEvent.create({
+        data: {
+          batchId: batch.batchId,
+          batchRefId: batch.id,
+          eventType,
+          ipfsHash,
+          chainType:
+            tx.network === "Ethereum Sepolia" ? "SEPOLIA" : "AMOY",
+          actorAddress: user.actorAddress,
+          actorUserId: user.id,
+          txHash: tx.txHash,
+          blockNumber: tx.blockNumber,
+          logIndex: 0,
+          blockTimestamp: tx.blockTimestamp,
+        },
+      });
+
+      savedEvents.push({
+        network: tx.network,
+        txHash: tx.txHash,
+        eventId: saved.id,
+      });
+    }
+
+    // const productEvent = await prisma.productEvent.create({
+    //   data: {
+    //     batchId: batch.batchId,
+    //     batchRefId: batch.id,
+    //     eventType: eventType,
+    //     ipfsHash: ipfsHash,
+    //     actorAddress: user.actorAddress,
+    //     actorUserId: user.id,
+    //     txHash: txResult.txHash,
+    //     blockNumber: txResult.blockNumber,
+    //     logIndex: txResult.logIndex,
+    //     blockTimestamp: txResult.blockTimestamp,
+    //   },
+    // });
 
     // PERBAIKAN: Ganti jsonResponse dengan NextResponse.json
     return NextResponse.json({
       success: true, // Diubah dari false ke true (success)
       message: "Record submitted successfully.",
-      eventId: productEvent.id,
-      txHash: txResult.txHash,
+      transactions: savedEvents,
     }, { status: 200 });
   } catch (err: any) {
     console.error("Harvest Record Error:", err);
