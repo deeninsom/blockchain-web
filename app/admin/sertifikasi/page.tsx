@@ -18,9 +18,11 @@ import {
 import { CameraCapture } from "@/components/farmer/camera-capture"
 import {
   Camera, Trash, CheckCircle, Clock, Check, Loader2,
-  Eye
+  Eye,
+  MoreVertical
 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu"
 
 type RecordStatus = "PENDING" | "REJECTED" | "VERIFIED" | "CONFIRMED";
 interface HarvestRecord {
@@ -182,14 +184,11 @@ export default function RecordHarvestPage() {
 
 
   const handleRowClick = (recordId: string) => {
-    router.push(`/admin/harvest-log/${recordId}`)
+    router.push(`/admin/sertifikasi/${recordId}`)
   }
   return (
     <AdminLayout>
       <div className="space-y-6">
-
-
-
         {formOpen && (
           <Card>
             <CardHeader>
@@ -297,7 +296,7 @@ export default function RecordHarvestPage() {
         <Card>
           <CardHeader>
             <CardTitle>Riwayat Panen</CardTitle>
-            <CardDescription>Daftar catatan panen yang telah Anda kirim ke sistem.</CardDescription>
+            <CardDescription>Daftar catatan panen yang ada di sistem.</CardDescription>
           </CardHeader>
 
           <CardContent>
@@ -333,7 +332,6 @@ export default function RecordHarvestPage() {
                         <TableCell>{r.quantity} {r.unit}</TableCell>
                         <TableCell>{r.harvestDate}</TableCell>
                         <TableCell><StatusBadge status={r.status} /></TableCell>
-
                         <TableCell className="flex space-x-2">
                           <Button
                             variant="ghost"

@@ -332,47 +332,16 @@ export default function RecordHarvestPage() {
                         <TableCell>{r.quantity} {r.unit}</TableCell>
                         <TableCell>{r.harvestDate}</TableCell>
                         <TableCell><StatusBadge status={r.status} /></TableCell>
-
-                        <TableCell>
-
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="hover:bg-muted"
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-
-                            <DropdownMenuContent align="end">
-
-                              {/* VERIFIKASI */}
-                              <DropdownMenuItem
-                                onClick={() => router.push(`/admin/verifikasi/${r.id}`)}
-                                className="cursor-pointer"
-                              >
-                                <Check className="h-4 w-4 mr-2 text-blue-600" />
-                                Verifikasi
-                              </DropdownMenuItem>
-
-                              {/* SERTIFIKASI */}
-                              <DropdownMenuItem
-                                onClick={() => router.push(`/admin/verifikasi/${r.id}`)}
-                                disabled={r.status !== "VERIFIED" && r.status !== "CONFIRMED"}
-                                className="cursor-pointer"
-                              >
-                                <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-                                Sertifikasi
-                              </DropdownMenuItem>
-
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-
+                        <TableCell className="flex space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRowClick(r.id)}
+                            className="text-primary cursor-pointer hover:bg-primary/10"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
                         </TableCell>
-
-
                       </TableRow>
                     ))}
                   </TableBody>

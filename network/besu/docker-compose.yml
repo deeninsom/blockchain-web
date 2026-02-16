@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  besu-dev:
+    image: hyperledger/besu:latest
+    container_name: besu-dev
+    ports:
+      - "8545:8545"   # RPC HTTP
+      - "30303:30303" # P2P
+    volumes:
+      - ./data:/var/lib/besu      # blockchain data
+      - ./genesis:/genesis        # genesis.json mount
+    command: >
+      --network=dev
+      --data-path=/var/lib/besu
+      --rpc-http-enabled
+      --rpc-http-host=0.0.0.0
+      --rpc-http-port=8545
+      --miner-enabled
+      --miner-coinbase=0xe59aabc185465d9070504956ae7bc475a78a9015
+      --genesis-file=/genesis/genesis.json
+      --rpc-http-api=ETH,NET,WEB3,MINER,DEBUG,ADMIN
+      --host-whitelist="*"

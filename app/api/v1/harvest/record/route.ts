@@ -173,111 +173,121 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const url = new URL(req.url);
-  const batchId = url.searchParams.get('batchId');
-
   try {
-    const token = req.cookies.get('auth_token')?.value;
+    const token = req.cookies.get("auth_token")?.value;
     if (!token) {
-      // PERBAIKAN: Ganti jsonResponse dengan NextResponse.json
-      return NextResponse.json({ success: false, message: "Authentication required." }, { status: 401 });
+      return NextResponse.json(
+        { success: false, message: "Authentication required." },
+        { status: 401 }
+      );
     }
 
-    // --- Otorisasi dan Peran ---
     const decoded = jwt.verify(token, JWT_SECRET) as CustomJwtPayload;
     const actorUserId = decoded.id;
     const actorUserRole = decoded.role;
 
     if (!actorUserId) {
-      // PERBAIKAN: Ganti jsonResponse dengan NextResponse.json
-      return NextResponse.json({ success: false, message: "Unauthorized or Invalid User." }, { status: 403 });
+      return NextResponse.json(
+        { success: false, message: "Unauthorized or Invalid User." },
+        { status: 403 }
+      );
     }
 
-    // 1. Tentukan Kondisi WHERE awal
-    const whereClause: any = {
-      eventType: 1, // Event Type 1 = Harvest/Creation
-    };
-
-    // 2. Terapkan Logika Akses Bersyarat (RBAC)
-    if (actorUserRole === 'PETANI') {
-      // Jika Petani, batasi data hanya pada ID mereka
-      whereClause.actorUserId = actorUserId;
-    }
-
-    // 3. Terapkan Filter batchId (Opsional)
-    if (batchId) {
-      whereClause.batchId = batchId;
-    }
-
-
-    const events = await prisma.productEvent.findMany({
-      where: whereClause, // Gunakan whereClause yang sudah disesuaikan
+    const batches = await prisma.batch.findMany({
       orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        batchId: true,
-        ipfsHash: true,
-        txHash: true,
-        createdAt: true,
-        batch: { // Join ke Batch untuk mendapatkan productName dan status
+      include: {
+        events: {
+          where: { eventType: 1 },
           select: {
-            productName: true,
-            status: true
+            id: true,
+            txHash: true,
+            chainType: true,
+            ipfsHash: true,
+            createdAt: true,
+            actorUserId: true,
           },
         },
       },
     });
 
-    // --- Pemrosesan Data IPFS ---
-    const recordsWithIpfsData = await Promise.all(
-      events.map(async (event) => {
-        const { batch, ...restOfEvent } = event;
+    if (batches.length === 0) {
+      return NextResponse.json(
+        { success: true, records: [] },
+        { status: 200 }
+      );
+    }
 
-        const batchProductName = batch?.productName || "N/A";
-        const batchStatus = batch?.status || "UNKNOWN";
+    const filteredBatches =
+      actorUserRole === "PETANI"
+        ? batches.filter((batch) =>
+          batch.events.some(
+            (event) => event.actorUserId === actorUserId
+          )
+        )
+        : batches;
 
-        // Handle kasus tanpa IPFS Hash
-        if (!restOfEvent.ipfsHash) {
-          return {
-            ...restOfEvent,
-            productName: batchProductName,
-            status: batchStatus,
-            location: "N/A",
-            harvestDate: restOfEvent.createdAt.toISOString(),
-            quantity: "0",
-            unit: "N/A",
-            photoIpfsHash: null,
+
+    const records = await Promise.all(
+      filteredBatches.map(async (batch) => {
+        const txByChain: Record<string, string> = {};
+        let firstEvent: any = null;
+
+        batch.events.forEach((event) => {
+          if (!firstEvent) firstEvent = event;
+
+          if (event.chainType && event.txHash) {
+            txByChain[event.chainType] = event.txHash;
           }
+        });
+
+        let ipfsData: any = {};
+
+        if (firstEvent?.ipfsHash) {
+          try {
+            ipfsData = await getIpfsJson(firstEvent.ipfsHash);
+          } catch { }
         }
 
-        const ipfsData = await getIpfsJson(restOfEvent.ipfsHash);
-
         return {
-          ...restOfEvent,
-          productName: ipfsData.productName || batchProductName,
-          status: batchStatus,
+          id: batch.id,
+          batchId: batch.batchId,
+          productName:
+            ipfsData.productName || batch.productName || "N/A",
+          status: batch.status || "UNKNOWN",
           location: ipfsData.location || "N/A",
-          harvestDate: ipfsData.harvestDate || restOfEvent.createdAt.toISOString(),
+          harvestDate:
+            ipfsData.harvestDate ||
+            firstEvent?.createdAt?.toISOString() ||
+            batch.createdAt.toISOString(),
           quantity: ipfsData.quantity || "0",
           unit: ipfsData.unit || "kg",
-          photoIpfsHash: ipfsData.photoIpfsHash,
+          photoIpfsHash: ipfsData.photoIpfsHash || null,
+          transactions: txByChain,
         };
       })
     );
 
-    // PERBAIKAN: Ganti jsonResponse dengan NextResponse.json
-    return NextResponse.json({ success: true, records: recordsWithIpfsData }, { status: 200 });
 
+    return NextResponse.json(
+      { success: true, records },
+      { status: 200 }
+    );
   } catch (err: any) {
     console.error("GET Harvest Record Error:", err.message);
 
-    // Penanganan error JWT eksplisit
-    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
-      // PERBAIKAN: Ganti jsonResponse dengan NextResponse.json
-      return NextResponse.json({ success: false, message: "Invalid or expired token." }, { status: 401 });
+    if (
+      err.name === "JsonWebTokenError" ||
+      err.name === "TokenExpiredError"
+    ) {
+      return NextResponse.json(
+        { success: false, message: "Invalid or expired token." },
+        { status: 401 }
+      );
     }
 
-    // PERBAIKAN: Ganti jsonResponse dengan NextResponse.json
-    return NextResponse.json({ success: false, message: "Failed to fetch data." }, { status: 500 });
+    return NextResponse.json(
+      { success: false, message: "Failed to fetch data." },
+      { status: 500 }
+    );
   }
 }
