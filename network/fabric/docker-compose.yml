@@ -1,0 +1,172 @@
+version: "3.9"
+
+networks:
+  fabric-network:
+    name: fabric-network
+    driver: bridge
+
+volumes:
+  orderer.bosfresh.com:
+  peer0.org1.bosfresh.com:
+  peer1.org1.bosfresh.com:
+  ca.org1.bosfresh.com:
+
+services:
+
+  ca.org1.bosfresh.com:
+    image: hyperledger/fabric-ca:1.5
+    container_name: ca.org1.bosfresh.com
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-org1
+      - FABRIC_CA_SERVER_TLS_ENABLED=false
+      - FABRIC_CA_SERVER_PORT=7054
+    ports:
+      - "7054:7054"
+    command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
+    volumes:
+      - ca.org1.bosfresh.com:/etc/hyperledger/fabric-ca-server
+    networks:
+      - fabric-network
+
+  orderer.bosfresh.com:
+    image: hyperledger/fabric-orderer:2.5
+    container_name: orderer.bosfresh.com
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_LISTENPORT=7050
+      - ORDERER_GENERAL_BOOTSTRAPMETHOD=none
+      - ORDERER_CHANNELPARTICIPATION_ENABLED=true
+      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+
+      - ORDERER_GENERAL_TLS_ENABLED=true
+      - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+
+      - ORDERER_ADMIN_LISTENADDRESS=0.0.0.0:7053
+      - ORDERER_ADMIN_TLS_ENABLED=true
+      - ORDERER_ADMIN_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_ADMIN_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_ADMIN_TLS_CLIENTROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+
+    command: orderer
+    volumes:
+      - ./crypto-config/ordererOrganizations/bosfresh.com/orderers/orderer.bosfresh.com/msp:/var/hyperledger/orderer/msp
+      - ./crypto-config/ordererOrganizations/bosfresh.com/orderers/orderer.bosfresh.com/tls:/var/hyperledger/orderer/tls
+      - orderer.bosfresh.com:/var/hyperledger/production/orderer
+    ports:
+      - "7050:7050"
+      - "7053:7053"
+    networks:
+      - fabric-network
+
+  peer0.org1.bosfresh.com:
+    image: hyperledger/fabric-peer:2.5
+    container_name: peer0.org1.bosfresh.com
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=fabric-network
+      - FABRIC_LOGGING_SPEC=INFO
+
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+
+      - CORE_PEER_ID=peer0.org1.bosfresh.com
+      - CORE_PEER_ADDRESS=peer0.org1.bosfresh.com:7051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.org1.bosfresh.com:7052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
+
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer1.org1.bosfresh.com:9051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org1.bosfresh.com:7051
+
+      - CORE_PEER_LOCALMSPID=Org1MSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+      - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+
+    command: peer node start
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./crypto-config/peerOrganizations/org1.bosfresh.com/peers/peer0.org1.bosfresh.com/msp:/etc/hyperledger/fabric/msp
+      - ./crypto-config/peerOrganizations/org1.bosfresh.com/peers/peer0.org1.bosfresh.com/tls:/etc/hyperledger/fabric/tls
+      - peer0.org1.bosfresh.com:/var/hyperledger/production
+    ports:
+      - "7051:7051"
+    networks:
+      - fabric-network
+    depends_on:
+      - orderer.bosfresh.com
+
+  peer1.org1.bosfresh.com:
+    image: hyperledger/fabric-peer:2.5
+    container_name: peer1.org1.bosfresh.com
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=fabric-network
+      - FABRIC_LOGGING_SPEC=INFO
+
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+
+      - CORE_PEER_ID=peer1.org1.bosfresh.com
+      - CORE_PEER_ADDRESS=peer1.org1.bosfresh.com:9051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:9051
+      - CORE_PEER_CHAINCODEADDRESS=peer1.org1.bosfresh.com:9052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:9052
+
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org1.bosfresh.com:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.org1.bosfresh.com:9051
+
+      - CORE_PEER_LOCALMSPID=Org1MSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+      - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+
+    command: peer node start
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./crypto-config/peerOrganizations/org1.bosfresh.com/peers/peer1.org1.bosfresh.com/msp:/etc/hyperledger/fabric/msp
+      - ./crypto-config/peerOrganizations/org1.bosfresh.com/peers/peer1.org1.bosfresh.com/tls:/etc/hyperledger/fabric/tls
+      - peer1.org1.bosfresh.com:/var/hyperledger/production
+    ports:
+      - "9051:9051"
+    networks:
+      - fabric-network
+    depends_on:
+      - orderer.bosfresh.com
+
+  cli:
+    image: hyperledger/fabric-tools:2.5
+    container_name: fabric-cli
+    tty: true
+    stdin_open: true
+    environment:
+      - GOPATH=/opt/gopath
+      - FABRIC_LOGGING_SPEC=INFO
+
+      - CORE_PEER_ID=cli
+      - CORE_PEER_ADDRESS=peer0.org1.bosfresh.com:7051
+      - CORE_PEER_LOCALMSPID=Org1MSP
+
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.bosfresh.com/peers/peer0.org1.bosfresh.com/tls/ca.crt
+      - CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.bosfresh.com/users/Admin@org1.bosfresh.com/msp
+
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: /bin/bash
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./crypto-config:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto
+      - ./channel-artifacts:/opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts
+      - ./chaincode:/opt/gopath/src/github.com/hyperledger/fabric/peer/chaincode
+    networks:
+      - fabric-network
+    depends_on:
+      - peer0.org1.bosfresh.com
+      - peer1.org1.bosfresh.com

@@ -1,23 +1,150 @@
 version: "3.9"
 
+# ============================================================
+# Hyperledger Besu — IBFT 2.0 Multi-Node Network (4 Validators)
+# Managed by a single organization for private blockchain testing
+# ============================================================
+
+networks:
+  besu-ibft-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.239.0/24
+
 services:
-  besu-dev:
+  # ============================
+  # Validator Node 1 (RPC: 8545)
+  # ============================
+  besu-ibft-node1:
     image: hyperledger/besu:latest
-    container_name: besu-dev
+    container_name: besu-ibft-node1
+    networks:
+      besu-ibft-network:
+        ipv4_address: 172.16.239.11
     ports:
-      - "8545:8545"   # RPC HTTP
-      - "30303:30303" # P2P
+      - "8545:8545"       # RPC HTTP
+      - "8546:8546"       # WebSocket
+      - "30303:30303"     # P2P
     volumes:
-      - ./data:/var/lib/besu      # blockchain data
-      - ./genesis:/genesis        # genesis.json mount
+      - ./genesis:/genesis
+      - ./data/node1:/var/lib/besu
+      - ./keys/node1:/keys
     command: >
-      --network=dev
+      --genesis-file=/genesis/ibft-genesis.json
       --data-path=/var/lib/besu
+      --node-private-key-file=/keys/key
       --rpc-http-enabled
       --rpc-http-host=0.0.0.0
       --rpc-http-port=8545
-      --miner-enabled
-      --miner-coinbase=0xe59aabc185465d9070504956ae7bc475a78a9015
-      --genesis-file=/genesis/genesis.json
-      --rpc-http-api=ETH,NET,WEB3,MINER,DEBUG,ADMIN
-      --host-whitelist="*"
+      --rpc-http-cors-origins="*"
+      --rpc-http-api=ETH,NET,WEB3,IBFT,ADMIN,DEBUG,MINER,TXPOOL
+      --rpc-ws-enabled
+      --rpc-ws-host=0.0.0.0
+      --rpc-ws-port=8546
+      --host-allowlist="*"
+      --p2p-host=172.16.239.11
+      --p2p-port=30303
+      --min-gas-price=0
+      --sync-min-peers=0
+      --static-nodes-file=/genesis/static-nodes.json
+    restart: unless-stopped
+
+  # ============================
+  # Validator Node 2 (RPC: 8547)
+  # ============================
+  besu-ibft-node2:
+    image: hyperledger/besu:latest
+    container_name: besu-ibft-node2
+    networks:
+      besu-ibft-network:
+        ipv4_address: 172.16.239.12
+    ports:
+      - "8547:8545"       # RPC HTTP
+      - "30304:30303"     # P2P
+    volumes:
+      - ./genesis:/genesis
+      - ./data/node2:/var/lib/besu
+      - ./keys/node2:/keys
+    command: >
+      --genesis-file=/genesis/ibft-genesis.json
+      --data-path=/var/lib/besu
+      --node-private-key-file=/keys/key
+      --rpc-http-enabled
+      --rpc-http-host=0.0.0.0
+      --rpc-http-port=8545
+      --rpc-http-cors-origins="*"
+      --rpc-http-api=ETH,NET,WEB3,IBFT,ADMIN
+      --host-allowlist="*"
+      --p2p-host=172.16.239.12
+      --p2p-port=30303
+      --min-gas-price=0
+      --sync-min-peers=0
+      --static-nodes-file=/genesis/static-nodes.json
+    restart: unless-stopped
+
+  # ============================
+  # Validator Node 3 (RPC: 8548)
+  # ============================
+  besu-ibft-node3:
+    image: hyperledger/besu:latest
+    container_name: besu-ibft-node3
+    networks:
+      besu-ibft-network:
+        ipv4_address: 172.16.239.13
+    ports:
+      - "8548:8545"       # RPC HTTP
+      - "30305:30303"     # P2P
+    volumes:
+      - ./genesis:/genesis
+      - ./data/node3:/var/lib/besu
+      - ./keys/node3:/keys
+    command: >
+      --genesis-file=/genesis/ibft-genesis.json
+      --data-path=/var/lib/besu
+      --node-private-key-file=/keys/key
+      --rpc-http-enabled
+      --rpc-http-host=0.0.0.0
+      --rpc-http-port=8545
+      --rpc-http-cors-origins="*"
+      --rpc-http-api=ETH,NET,WEB3,IBFT,ADMIN
+      --host-allowlist="*"
+      --p2p-host=172.16.239.13
+      --p2p-port=30303
+      --min-gas-price=0
+      --sync-min-peers=0
+      --static-nodes-file=/genesis/static-nodes.json
+    restart: unless-stopped
+
+  # ============================
+  # Validator Node 4 (RPC: 8549)
+  # ============================
+  besu-ibft-node4:
+    image: hyperledger/besu:latest
+    container_name: besu-ibft-node4
+    networks:
+      besu-ibft-network:
+        ipv4_address: 172.16.239.14
+    ports:
+      - "8549:8545"       # RPC HTTP
+      - "30306:30303"     # P2P
+    volumes:
+      - ./genesis:/genesis
+      - ./data/node4:/var/lib/besu
+      - ./keys/node4:/keys
+    command: >
+      --genesis-file=/genesis/ibft-genesis.json
+      --data-path=/var/lib/besu
+      --node-private-key-file=/keys/key
+      --rpc-http-enabled
+      --rpc-http-host=0.0.0.0
+      --rpc-http-port=8545
+      --rpc-http-cors-origins="*"
+      --rpc-http-api=ETH,NET,WEB3,IBFT,ADMIN
+      --host-allowlist="*"
+      --p2p-host=172.16.239.14
+      --p2p-port=30303
+      --min-gas-price=0
+      --sync-min-peers=0
+      --static-nodes-file=/genesis/static-nodes.json
+    restart: unless-stopped

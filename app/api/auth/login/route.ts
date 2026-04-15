@@ -45,11 +45,13 @@ export async function POST(req: Request) {
       role: userRecord.role,
     }
     console.log(userData)
+    console.log(token)
 
     const response = NextResponse.json({
       success: true,
       message: "Login successful",
       user: userData,
+      token: token,
     }, { status: 200 });
 
 

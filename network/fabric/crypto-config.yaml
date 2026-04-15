@@ -1,0 +1,25 @@
+# ============================================================
+# crypto-config.yaml
+# Generates crypto material for Fabric network
+# Usage: cryptogen generate --config=./crypto-config.yaml
+# ============================================================
+
+OrdererOrgs:
+  - Name: Orderer
+    Domain: bosfresh.com
+    EnableNodeOUs: true
+    Specs:
+      - Hostname: orderer
+        SANS:
+          - localhost
+
+PeerOrgs:
+  - Name: Org1
+    Domain: org1.bosfresh.com
+    EnableNodeOUs: true
+    Template:
+      Count: 2  # 2 peers (multi-node)
+      SANS:
+        - localhost
+    Users:
+      Count: 1  # 1 admin user

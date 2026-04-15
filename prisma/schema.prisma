@@ -163,8 +163,9 @@ model ShipmentLog {
 model TestSession {
   id               String           @id @default(uuid())
   startTime        DateTime         @default(now())
-  duration         Int // dalam detik
-  targetThroughput Int // TPS yang dikonfigurasi
+  duration         Int // total transaksi per chain
+  targetThroughput Int // TPS yang dikonfigurasi (concurrent batch size)
+  comparisonMode   String           @default("simulated") // "public_vs_public" | "private_vs_private" | "public_vs_private" | "simulated"
   metrics          RawMetric[]
   aggregates       AggregateMetric?
 }
@@ -173,25 +174,32 @@ model RawMetric {
   id               String      @id @default(uuid())
   sessionId        String
   testSession      TestSession @relation(fields: [sessionId], references: [id])
-  chainType        String // "ETHEREUM" | "HYPERLEDGER"
+  chainType        String // "ETH_SEPOLIA" | "POLYGON_AMOY" | "BESU_IBFT" | "BESU_CLIQUE" | "HLF_SIMULATED" | etc.
   submitTime       DateTime // Langkah 2: Load Generator kirim
   includedTime     DateTime? // Langkah 3/4: Masuk blok/commit
   confirmationTime DateTime? // Langkah 5: Receipt diterima
   latencyMs        Float?
   gasUsed          Int?
+  txHash           String? // hash transaksi jika real tx
   status           String // "SUCCESS" | "FAILED"
+
+  @@index([sessionId])
+  @@index([chainType])
 }
 
 model AggregateMetric {
-  id          String      @id @default(uuid())
-  sessionId   String      @unique
-  testSession TestSession @relation(fields: [sessionId], references: [id])
-  ethP50      Float
-  ethP95      Float
-  ethTps      Float
-  hlfP50      Float
-  hlfP95      Float
-  hlfTps      Float
+  id             String      @id @default(uuid())
+  sessionId      String      @unique
+  testSession    TestSession @relation(fields: [sessionId], references: [id])
+  comparisonMode String      @default("simulated")
+  chainAName     String      @default("Ethereum") // Nama chain A
+  chainBName     String      @default("Hyperledger") // Nama chain B
+  chainAP50      Float
+  chainAP95      Float
+  chainATps      Float
+  chainBP50      Float
+  chainBP95      Float
+  chainBTps      Float
 }
 
 enum UserStatus {

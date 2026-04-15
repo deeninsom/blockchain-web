@@ -48,7 +48,20 @@ export function LoginPage({ onSwitchToRegister }: LoginPageProps) {
           `Selamat datang kembali, ${data.user.name || data.user.email}!`,
           "success"
         )
-        router.push("/dashboard")
+        
+        // Role-based routing
+        const role = data.user.role?.toUpperCase() || "";
+        if (role === "SUPERADMIN") {
+          router.push("/superadmin");
+        } else if (role === "ADMIN") {
+          router.push("/admin");
+        } else if (role === "FARMER") {
+          router.push("/farmer");
+        } else if (role === "WAREHOUSE_CENTER" || role === "WAREHOUSE_RETAIL") {
+          router.push("/operator");
+        } else {
+          router.push("/dashboard");
+        }
       } else {
         addNotification(
           "Login Gagal",

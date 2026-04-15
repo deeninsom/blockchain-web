@@ -58,7 +58,7 @@ interface CertificationData {
 /* CONSTANTS & HELPERS                                                         */
 /* -------------------------------------------------------------------------- */
 
-const IPFS_GATEWAY_URL = process.env.NEXT_PUBLIC_IPFS_GATEWAY;
+const IPFS_GATEWAY_URL = process.env.NEXT_PUBLIC_IPFS_GATEWAY || "http://127.0.0.1:8080/ipfs/";
 
 const getExplorerUrl = (network: string, txHash: string) => {
   switch (network?.toUpperCase()) {
