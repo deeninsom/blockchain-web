@@ -77,6 +77,11 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
       href: "/farmer",
     },
     {
+      label: "Sertifikasi",
+      icon: FileText,
+      href: "/farmer/certification",
+    },
+    {
       label: "Panen",
       icon: Wheat,
       submenu: [

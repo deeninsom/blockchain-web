@@ -1,4 +1,3 @@
-
 'use client'
 
 import React, { useState, useEffect, useCallback } from "react"
@@ -182,7 +181,7 @@ export default function RecordHarvestPage() {
 
   const submitHarvest = async () => {
     if (!formData.productName || !formData.location || !formData.quantity || !formData.unit) {
-      addNotification("Error", "Semua field wajib diisi (Batch, Lokasi, Kuantitas, Unit).", "error")
+      addNotification("Error", "Semua field wajib diisi.", "error")
       return
     }
 
@@ -191,13 +190,11 @@ export default function RecordHarvestPage() {
       return
     }
 
-    // Validasi sederhana kuantitas
     const quantityFloat = parseFloat(formData.quantity);
     if (isNaN(quantityFloat) || quantityFloat <= 0) {
       addNotification("Error", "Kuantitas harus berupa angka positif.", "error");
       return;
     }
-
 
     const fd = new FormData()
     fd.append("productName", formData.productName)
@@ -264,7 +261,7 @@ export default function RecordHarvestPage() {
                 <Input
                   name="productName"
                   value={formData.productName}
-                  placeholder="Nama Produk (e.g., Beras Pandan Wangi)"
+                  placeholder="Nama Produk/Panen"
                   onChange={handleChange}
                   disabled={loading}
                 />

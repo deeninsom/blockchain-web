@@ -1,44 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import path from "path";
-import { mkdir, writeFile, unlink } from "fs/promises";
 import { prisma } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
 import { uploadToIPFS } from "@/lib/ipfs/uploadToIPFS";
 import { sendToBothNetworks } from "@/lib/blockchain/transaction";
 
 export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
 
 const JWT_SECRET = process.env.AUTH_SECRET || 'your_super_secret_fallback';
 const EVENT_TYPE_VERIFICATION = 99;
 
 export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  // 1. AMBIL FORM DATA SEGERA (Paling Atas)
-  // Ini mencegah error "body is disturbed or locked" atau "expected boundary"
-  let formData: FormData;
-  try {
-    formData = await req.formData();
-  } catch (err) {
-    console.error("Multipart Parse Error:", err);
-    return NextResponse.json({ success: false, message: "Gagal membaca data formulir. Pastikan file tidak terlalu besar." }, { status: 400 });
-  }
-
-  const { id: eventId } = await context.params;
-  let tempPath: string | undefined;
+  const { id: batchId } = await context.params;
 
   try {
-    // 2. EKSTRAKSI DATA DARI FORM (Sudah di memori)
-    const certificateName = formData.get('certificateName') as string;
-    const expiryDateStr = formData.get('expiryDate') as string;
-    const notes = (formData.get('notes') || '') as string;
-    const categoryName = (formData.get('categoryName') || '') as string;
-    const certificateFile = formData.get('certificateFile') as File;
-
-    if (!certificateName || !expiryDateStr || !certificateFile || !(certificateFile instanceof File)) {
-      return NextResponse.json({ success: false, message: "Nama, Tanggal, dan File Sertifikat wajib diisi." }, { status: 400 });
-    }
-
-    // 3. AUTHENTICATION (Setelah body aman)
+    // 1. AUTHENTICATION
     const token = req.cookies.get('auth_token')?.value;
     if (!token) return NextResponse.json({ success: false, message: "Authentication required." }, { status: 401 });
 
@@ -54,52 +29,56 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     const adminUser = await prisma.user.findUnique({ where: { id: decoded.id } });
     if (!adminUser?.actorAddress) throw new Error("Wallet admin tidak terdaftar.");
 
-    // 4. CEK EVENT & BATCH
-    const existingEvent = await prisma.productEvent.findUnique({
-      where: { id: eventId },
-      include: { batch: true }
+    // 2. CEK BATCH
+    const existingBatch = await prisma.batch.findUnique({
+      where: { id: batchId },
     });
 
-    if (!existingEvent || !existingEvent.batch) {
-      return NextResponse.json({ success: false, message: "Data panen tidak ditemukan." }, { status: 404 });
+    if (!existingBatch) {
+      return NextResponse.json({ success: false, message: "Pengajuan Sertifikasi tidak ditemukan." }, { status: 404 });
     }
 
-    if (existingEvent.batch.status === 'CONFIRMED') {
+    if (existingBatch.status === 'CONFIRMED') {
       return NextResponse.json({ success: false, message: "Batch sudah dikonfirmasi sebelumnya." }, { status: 400 });
     }
 
-    // 5. PROSES FILE & UPLOAD IPFS
-    const buffer = Buffer.from(await certificateFile.arrayBuffer());
-    const uploadDir = path.join(process.cwd(), "public", "uploads");
-    await mkdir(uploadDir, { recursive: true });
+    // 3. CREATE DUMMY CERTIFICATE PAYLOAD KE IPFS (KARENA FILE FISIK DIHAPUS)
+    const certPayload = JSON.stringify({ 
+      message: "Sertifikasi disetujui otomatis oleh sistem", 
+      batchId: existingBatch.batchId, 
+      approvedBy: decoded.id 
+    });
+    
+    const dummyCertIpfs = await uploadToIPFS(certPayload, false, 'application/json');
+    if (!dummyCertIpfs?.cid) throw new Error("Gagal mengupload sertifikat sistem ke IPFS.");
 
-    const safeName = `CERT-${Date.now()}-${certificateFile.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
-    tempPath = path.join(uploadDir, safeName);
-    await writeFile(tempPath, buffer);
+    // 4. SIMPAN DATA KE DATABASE
+    const expiryDate = new Date();
+    expiryDate.setFullYear(expiryDate.getFullYear() + 1); // Default 1 year expiry
 
-    const certificateIpfs = await uploadToIPFS(tempPath, true);
-    if (!certificateIpfs?.cid) throw new Error("Gagal mengupload file ke IPFS.");
-
-    // 6. SIMPAN DATA KE DATABASE
     const certificate = await prisma.certificate.create({
       data: {
-        batchId: existingEvent.batch.id,
-        certName: certificateName,
-        expiryDate: new Date(expiryDateStr),
-        certHash: certificateIpfs.cid,
+        batchId: existingBatch.id,
+        certName: "Sertifikat Sistem Otomatis",
+        expiryDate: expiryDate,
+        certHash: dummyCertIpfs.cid,
         issuedByUserId: decoded.id,
-        notes,
-        categoryName
+        notes: "Disetujui tanpa form verifikasi",
+        categoryName: "Sertifikasi"
       }
     });
 
-    // 7. BLOCKCHAIN TRANSACTION
+    const appEvent = await prisma.productEvent.findFirst({
+      where: { batchRefId: existingBatch.id, eventType: 0 }
+    });
+
+    // 5. BLOCKCHAIN TRANSACTION
     const verificationPayload = {
       eventType: EVENT_TYPE_VERIFICATION,
-      eventId: existingEvent.id,
-      batchId: existingEvent.batch.batchId,
+      eventId: appEvent ? appEvent.id : "N/A",
+      batchId: existingBatch.batchId,
       certificateId: certificate.id,
-      certificateHash: certificateIpfs.cid,
+      certificateHash: dummyCertIpfs.cid,
       issuedByAddress: adminUser.actorAddress,
       issuedByUserId: decoded.id,
       timestamp: new Date().toISOString(),
@@ -110,18 +89,26 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
 
     const txResults = await sendToBothNetworks(
       adminUser.actorAddress,
-      existingEvent.batch.batchId,
+      existingBatch.batchId,
       jsonIpfs.cid,
       EVENT_TYPE_VERIFICATION
     );
 
-    // 8. SIMPAN LOG BLOCKCHAIN & UPDATE STATUS
+    // Update form to include txHash into certificate
+    await prisma.certificate.update({
+      where: { id: certificate.id },
+      data: {
+        txHash: txResults.map((t: any) => t.txHash).join(","),
+      }
+    });
+
+    // 6. SIMPAN LOG BLOCKCHAIN & UPDATE STATUS
     const savedEvents = [];
     for (const tx of txResults) {
       const saved = await prisma.productEvent.create({
         data: {
-          batchId: existingEvent.batch.batchId,
-          batchRefId: existingEvent.batch.id,
+          batchId: existingBatch.batchId,
+          batchRefId: existingBatch.id,
           eventType: EVENT_TYPE_VERIFICATION,
           ipfsHash: jsonIpfs.cid,
           chainType: tx.network.includes("Sepolia") ? "SEPOLIA" : "AMOY",
@@ -137,7 +124,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     }
 
     await prisma.batch.update({
-      where: { id: existingEvent.batch.id },
+      where: { id: existingBatch.id },
       data: { status: 'CONFIRMED' },
     });
 
@@ -150,9 +137,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
   } catch (error: any) {
     console.error("Verification Error:", error);
     return NextResponse.json({ success: false, message: error.message || "Internal Server Error" }, { status: 500 });
-  } finally {
-    if (tempPath) {
-      try { await unlink(tempPath); } catch (e) { }
-    }
   }
 }

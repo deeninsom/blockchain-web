@@ -208,7 +208,7 @@ export async function GET(req: NextRequest) {
     }
 
     const filteredBatches =
-      actorUserRole === "PETANI"
+      actorUserRole === "FARMER"
         ? batches.filter((batch) =>
           batch.events.some(
             (event) => event.actorUserId === actorUserId

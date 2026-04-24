@@ -37,14 +37,17 @@ export async function GET(
        2. WHERE CLAUSE
     =============================== */
     const whereClause: any = { batchRefId: batchId };
-    if (actorUserRole === "PETANI") whereClause.actorUserId = actorUserId;
+    if (actorUserRole === "FARMER") whereClause.actorUserId = actorUserId;
 
     /* ===============================
        3. GET EVENTS
     =============================== */
     const events = await prisma.productEvent.findMany({
       where: whereClause,
-      include: { batch: { select: { status: true, productName: true } } },
+      include: {
+        batch: { select: { status: true, productName: true } },
+        actorUser: { select: { id: true, name: true, actorAddress: true } }
+      },
       orderBy: { createdAt: "asc" },
     });
 
@@ -102,8 +105,27 @@ export async function GET(
     /* ===============================
        5. AMBIL 1 HARVEST & 1 CERTIFICATION
     =============================== */
+    const applicationEvent = events.find(e => e.eventType === 0);
     const harvestEvent = events.find(e => e.eventType === 1);
     const certEvent = events.find(e => e.eventType === 99);
+
+    const applicationData = applicationEvent ? (() => {
+      const ipfs = ipfsMap[applicationEvent.ipfsHash];
+      return {
+        id: applicationEvent.id,
+        batchId: applicationEvent.batchId,
+        productName: ipfs?.data?.productName || applicationEvent.batch?.productName || "N/A",
+        location: ipfs?.data?.location || "N/A",
+        documentHash: ipfs?.data?.documentHash || null,
+        ipfs: ipfs?.data || null,
+        createdAt: applicationEvent.createdAt.toISOString(),
+        farmerName: applicationEvent.actorUser?.name || ipfs?.data?.farmerName || "N/A",
+        farmerAddress: applicationEvent.actorUser?.actorAddress || applicationEvent.actorAddress || "N/A",
+        harvestDate: ipfs?.data?.harvestDate || null,
+        quantity: ipfs?.data?.quantity || null,
+        unit: ipfs?.data?.unit || null
+      };
+    })() : null;
 
     const harvestData = harvestEvent ? (() => {
       const ipfs = ipfsMap[harvestEvent.ipfsHash];
@@ -118,6 +140,8 @@ export async function GET(
         photoIpfsHash: ipfs?.data?.photoIpfsHash || null,
         networks: ipfs?.networks || [],
         ipfs: ipfs?.data || null,
+        farmerName: harvestEvent.actorUser?.name || "N/A",
+        farmerAddress: harvestEvent.actorUser?.actorAddress || harvestEvent.actorAddress || "N/A"
       };
     })() : null;
 
@@ -144,6 +168,7 @@ export async function GET(
     const recordDetail = {
       batchId: firstEvent.batchId,
       status: batchStatus,
+      applicationData,
       harvestData,
       certificationData,
     };

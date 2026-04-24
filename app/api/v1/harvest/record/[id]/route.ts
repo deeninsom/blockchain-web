@@ -182,7 +182,7 @@ export async function GET(
       batchRefId: batchId,
     };
 
-    if (actorUserRole === "PETANI") {
+    if (actorUserRole === "FARMER") {
       whereClause.actorUserId = actorUserId;
     }
 

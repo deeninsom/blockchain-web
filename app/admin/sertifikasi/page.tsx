@@ -28,6 +28,7 @@ type RecordStatus = "PENDING" | "REJECTED" | "VERIFIED" | "CONFIRMED";
 interface HarvestRecord {
   id: string,
   batchId: string,
+  farmerName?: string,
   productName: string,
   location: string
   harvestDate: string
@@ -116,7 +117,7 @@ export default function RecordHarvestPage() {
     try {
       setLoading(true)
       // ASUMSI: API endpoint baru yang telah disesuaikan dengan POST di atas
-      const res = await fetch("/api/v1/harvest-log")
+      const res = await fetch("/api/certification/list-pending")
 
       if (!res.ok) {
         const errorData = await res.json();
@@ -129,22 +130,20 @@ export default function RecordHarvestPage() {
       const rawRecords = json.records || []
 
       const formatted = rawRecords.map((r: any): HarvestRecord => ({
-        id: r.id,
+        id: r.batchRefId,
         batchId: r.batchId,
+        farmerName: r.farmerName,
         location: r.location,
-        harvestDate: new Date(r.harvestDate).toLocaleString("id-ID", {
+        harvestDate: new Date(r.createdAt).toLocaleString("id-ID", {
           day: "2-digit", month: "short", year: "numeric",
           hour: "2-digit", minute: "2-digit"
         }),
         productName: r.productName || 'N/A',
-        quantity: parseFloat(r.quantity || 0).toLocaleString("id-ID", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        }),
-        unit: r.unit,
-        photoIpfsHash: r.photoIpfsHash,
-        txHash: r.txHash,
-        ipfsHash: r.ipfsHash,
+        quantity: "-", // Not applicable for cert application
+        unit: "",
+        photoIpfsHash: r.documentHash, // We reuse this field to mean 'documentHash'
+        txHash: null,
+        ipfsHash: "",
         status: r.status,
         createdAt: new Date(r.createdAt).toLocaleDateString("id-ID")
       }))
@@ -152,7 +151,7 @@ export default function RecordHarvestPage() {
       setRecords(formatted)
     } catch (err: any) {
       console.error("Fetch Error:", err);
-      addNotification("Error", err.message || "Gagal memuat data panen", "error")
+      addNotification("Error", err.message || "Gagal memuat data pengajuan", "error")
     } finally {
       setLoading(false)
     }
@@ -314,6 +313,7 @@ export default function RecordHarvestPage() {
                   <TableHeader>
                     <TableRow >
                       <TableHead>Batch</TableHead>
+                      <TableHead>Petani</TableHead>
                       <TableHead>Produk</TableHead>
                       <TableHead>Lokasi</TableHead>
                       <TableHead>Quantity</TableHead>
@@ -327,6 +327,7 @@ export default function RecordHarvestPage() {
                     {records.map((r) => (
                       <TableRow key={r.id} >
                         <TableCell className="font-medium">{r.batchId}</TableCell>
+                        <TableCell>{r.farmerName || "N/A"}</TableCell>
                         <TableCell>{r.productName}</TableCell>
                         <TableCell>{r.location}</TableCell>
                         <TableCell>{r.quantity} {r.unit}</TableCell>

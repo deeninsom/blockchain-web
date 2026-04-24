@@ -125,6 +125,7 @@ model Certificate {
   expiryDate     DateTime
   certHash       String
   issuedByUserId String
+  txHash         String?
   notes          String?
   categoryName   String?
   createdAt      DateTime @default(now())
