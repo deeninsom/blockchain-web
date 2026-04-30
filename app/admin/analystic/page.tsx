@@ -201,7 +201,6 @@ export default function PerformanceLab() {
                   }`}
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xl">{mode.icon}</span>
                   <span className="font-semibold text-sm">{mode.label}</span>
                 </div>
                 <p className="text-xs text-gray-400 leading-relaxed">{mode.description}</p>
